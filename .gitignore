@@ -1,0 +1,30 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Java
+**/target/
+*.class
+*.log
+
+# React
+**/node_modules/
+**/dist/
+
+# Flutter
+**/.dart_tool/
+**/build/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Android
+**/.gradle/
+**/local.properties
+
+# OS
+.DS_Store
+Thumbs.db
