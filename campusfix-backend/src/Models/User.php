@@ -227,4 +227,69 @@ class User
 
         return $stmt->rowCount() > 0;
     }
+    public function findProfileById(int $userId): array|false
+{
+    $sql = "
+        SELECT
+            user_id,
+            department_id,
+            full_name,
+            email,
+            phone,
+            role,
+            enrollment_number,
+            employee_id,
+            is_active,
+            created_at,
+            updated_at
+        FROM users
+        WHERE user_id = :user_id
+        LIMIT 1
+    ";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute(['user_id' => $userId]);
+
+    return $stmt->fetch();
+}
+
+public function updateProfile(
+    int $userId,
+    string $fullName,
+    ?string $phone
+): bool {
+    $sql = "
+        UPDATE users
+        SET
+            full_name = :full_name,
+            phone = :phone
+        WHERE user_id = :user_id
+    ";
+
+    $stmt = $this->db->prepare($sql);
+
+    return $stmt->execute([
+        'full_name' => $fullName,
+        'phone' => $phone,
+        'user_id' => $userId
+    ]);
+}
+
+public function updatePassword(
+    int $userId,
+    string $passwordHash
+): bool {
+    $sql = "
+        UPDATE users
+        SET password_hash = :password_hash
+        WHERE user_id = :user_id
+    ";
+
+    $stmt = $this->db->prepare($sql);
+
+    return $stmt->execute([
+        'password_hash' => $passwordHash,
+        'user_id' => $userId
+    ]);
+}
 }

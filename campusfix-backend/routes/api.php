@@ -9,6 +9,7 @@ use Campusfix\Backend\Controllers\DepartmentController;
 use Campusfix\Backend\Controllers\LocationController;
 use Campusfix\Backend\Controllers\FeedbackController;
 use Campusfix\Backend\Controllers\NotificationController;
+use Campusfix\Backend\Controllers\ProfileController;
 return [
 
     // Health
@@ -176,6 +177,21 @@ return [
 'DELETE /api/notifications/delete' => [
     NotificationController::class,
     'delete'
+],
+// Profile Management
+'GET /api/profile' => [
+    ProfileController::class,
+    'show'
+],
+
+'PATCH /api/profile' => [
+    ProfileController::class,
+    'update'
+],
+
+'PATCH /api/profile/password' => [
+    ProfileController::class,
+    'changePassword'
 ],
 
 ];
