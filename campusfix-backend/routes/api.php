@@ -7,6 +7,7 @@ use Campusfix\Backend\Controllers\AdminController;
 use Campusfix\Backend\Controllers\StaffController;
 use Campusfix\Backend\Controllers\DepartmentController;
 use Campusfix\Backend\Controllers\LocationController;
+use Campusfix\Backend\Controllers\FeedbackController;
 return [
 
     // Health
@@ -122,6 +123,32 @@ return [
 'PATCH /api/admin/locations/update' => [
     LocationController::class,
     'update'
+],
+
+// Feedback Management
+'POST /api/feedback' => [
+    FeedbackController::class,
+    'submit'
+],
+
+'GET /api/feedback/my' => [
+    FeedbackController::class,
+    'myFeedback'
+],
+
+'GET /api/admin/feedback' => [
+    FeedbackController::class,
+    'index'
+],
+
+'GET /api/admin/feedback/show' => [
+    FeedbackController::class,
+    'show'
+],
+
+'GET /api/admin/feedback/stats' => [
+    FeedbackController::class,
+    'stats'
 ],
 
 ];
