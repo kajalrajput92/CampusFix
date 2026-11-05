@@ -11,11 +11,13 @@ use Throwable;
 class AssignmentService
 {
     private PDO $db;
+    private NotificationService $notificationService;
 
     public function __construct()
-    {
-        $this->db = Database::connect();
-    }
+{
+    $this->db = Database::connect();
+    $this->notificationService = new NotificationService();
+}
 
     /**
      * Assign a complaint to a staff member.
@@ -31,10 +33,15 @@ class AssignmentService
 
             // Lock and verify complaint.
             $complaintStmt = $this->db->prepare("
-                SELECT complaint_id, status
-                FROM complaints
-                WHERE complaint_id = :id
-                FOR UPDATE
+               SELECT
+    complaint_id,
+    student_id,
+    complaint_number,
+    title,
+    status
+FROM complaints
+WHERE complaint_id = :id
+FOR UPDATE
             ");
 
             $complaintStmt->execute(['id' => $complaintId]);
@@ -145,6 +152,43 @@ class AssignmentService
             ]);
 
             $this->db->commit();
+            // Notify the student about staff assignment.
+try {
+    $this->notificationService->createNotification([
+        'user_id' => (int) $complaint['student_id'],
+        'complaint_id' => $complaintId,
+        'type' => 'COMPLAINT_ASSIGNED',
+        'title' => 'Complaint Assigned',
+        'message' => 'Your complaint '
+            . $complaint['complaint_number']
+            . ' has been assigned to a staff member.'
+    ]);
+} catch (Throwable $e) {
+    error_log(
+        'Student assignment notification failed: '
+        . $e->getMessage()
+    );
+}
+
+// Notify the assigned staff member.
+try {
+    $this->notificationService->createNotification([
+        'user_id' => $staffId,
+        'complaint_id' => $complaintId,
+        'type' => 'NEW_ASSIGNMENT',
+        'title' => 'New Complaint Assigned',
+        'message' => 'Complaint '
+            . $complaint['complaint_number']
+            . ' - '
+            . $complaint['title']
+            . ' has been assigned to you.'
+    ]);
+} catch (Throwable $e) {
+    error_log(
+        'Staff assignment notification failed: '
+        . $e->getMessage()
+    );
+}
 
             return [
                 'complaint_id' => $complaintId,

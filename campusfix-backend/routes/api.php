@@ -8,6 +8,7 @@ use Campusfix\Backend\Controllers\StaffController;
 use Campusfix\Backend\Controllers\DepartmentController;
 use Campusfix\Backend\Controllers\LocationController;
 use Campusfix\Backend\Controllers\FeedbackController;
+use Campusfix\Backend\Controllers\NotificationController;
 return [
 
     // Health
@@ -149,6 +150,32 @@ return [
 'GET /api/admin/feedback/stats' => [
     FeedbackController::class,
     'stats'
+],
+
+// Notification Management
+'GET /api/notifications' => [
+    NotificationController::class,
+    'index'
+],
+
+'GET /api/notifications/unread-count' => [
+    NotificationController::class,
+    'unreadCount'
+],
+
+'PATCH /api/notifications/read' => [
+    NotificationController::class,
+    'markAsRead'
+],
+
+'PATCH /api/notifications/read-all' => [
+    NotificationController::class,
+    'markAllAsRead'
+],
+
+'DELETE /api/notifications/delete' => [
+    NotificationController::class,
+    'delete'
 ],
 
 ];

@@ -13,12 +13,14 @@ class ComplaintService
     private Complaint $complaintModel;
     private PDO $db;
     private ImageUploadService $imageUploadService;
+    private NotificationService $notificationService;
 
     public function __construct()
     {
         $this->complaintModel = new Complaint();
         $this->db = Database::connect();
         $this->imageUploadService = new ImageUploadService();
+        $this->notificationService = new NotificationService();
     }
 
     /**
@@ -170,6 +172,24 @@ class ComplaintService
             $complaintId
         );
 
+        // Send complaint submission notification to student.
+        try {
+            $this->notificationService->createNotification([
+                'user_id' => $studentId,
+                'complaint_id' => $complaintId,
+                'type' => 'COMPLAINT_SUBMITTED',
+                'title' => 'Complaint Submitted',
+                'message' => 'Your complaint '
+                    . $complaint['complaint_number']
+                    . ' has been submitted successfully.'
+            ]);
+
+        } catch (Throwable $e) {
+            error_log(
+                'Complaint notification failed: ' . $e->getMessage()
+            );
+        }
+
         return [
             'complaint_id' => $complaintId,
             'complaint_number' => $complaint['complaint_number'],
@@ -263,12 +283,59 @@ class ComplaintService
             );
         }
 
-        return $this->complaintModel->updateStatus(
+        // Update complaint status and commit database transaction.
+        $result = $this->complaintModel->updateStatus(
             $complaintId,
             $staffId,
             $status,
             $resolutionNotes
         );
+
+        // Send notification to student after successful status update.
+        try {
+            $stmt = $this->db->prepare("
+                SELECT student_id, complaint_number
+                FROM complaints
+                WHERE complaint_id = :complaint_id
+                LIMIT 1
+            ");
+
+            $stmt->execute([
+                'complaint_id' => $complaintId
+            ]);
+
+            $complaint = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($complaint) {
+                $isResolved = $status === 'RESOLVED';
+
+                $this->notificationService->createNotification([
+                    'user_id' => (int) $complaint['student_id'],
+                    'complaint_id' => $complaintId,
+                    'type' => $isResolved
+                        ? 'COMPLAINT_RESOLVED'
+                        : 'COMPLAINT_IN_PROGRESS',
+                    'title' => $isResolved
+                        ? 'Complaint Resolved'
+                        : 'Complaint Work Started',
+                    'message' => $isResolved
+                        ? 'Your complaint '
+                            . $complaint['complaint_number']
+                            . ' has been resolved successfully.'
+                        : 'Work has started on your complaint '
+                            . $complaint['complaint_number']
+                            . '.'
+                ]);
+            }
+
+        } catch (Throwable $e) {
+            error_log(
+                'Complaint status notification failed: '
+                . $e->getMessage()
+            );
+        }
+
+        return $result;
     }
 
     /**
