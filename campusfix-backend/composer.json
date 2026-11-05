@@ -1,0 +1,21 @@
+{
+    "name": "campusfix/backend",
+    "description": "Core PHP REST API backend for CampusFix Smart Campus Issue Reporting Platform",
+    "type": "project",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Campusfix\\Backend\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Divyanshu Singh Chauhan",
+            "email": "divyanshusinghchauhan58@gmail.com"
+        }
+    ],
+    "require": {
+        "vlucas/phpdotenv": "^5.8",
+        "firebase/php-jwt": "^7.2"
+    }
+}
