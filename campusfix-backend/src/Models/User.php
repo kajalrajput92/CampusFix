@@ -275,10 +275,8 @@ public function updateProfile(
     ]);
 }
 
-public function updatePassword(
-    int $userId,
-    string $passwordHash
-): bool {
+public function updatePassword(int $userId, string $passwordHash): bool
+{
     $sql = "
         UPDATE users
         SET password_hash = :password_hash
@@ -287,9 +285,41 @@ public function updatePassword(
 
     $stmt = $this->db->prepare($sql);
 
-    return $stmt->execute([
+    $stmt->execute([
         'password_hash' => $passwordHash,
         'user_id' => $userId
     ]);
+
+    return $stmt->rowCount() > 0;
+}
+public function getTokenVersion(int $userId): int|false
+{
+    $sql = "
+        SELECT token_version
+        FROM users
+        WHERE user_id = :user_id
+        LIMIT 1
+    ";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute(['user_id' => $userId]);
+
+    $result = $stmt->fetchColumn();
+
+    return $result === false ? false : (int) $result;
+}
+
+public function incrementTokenVersion(int $userId): bool
+{
+    $sql = "
+        UPDATE users
+        SET token_version = token_version + 1
+        WHERE user_id = :user_id
+    ";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute(['user_id' => $userId]);
+
+    return $stmt->rowCount() > 0;
 }
 }

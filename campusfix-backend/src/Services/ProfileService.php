@@ -2,8 +2,11 @@
 
 namespace Campusfix\Backend\Services;
 
+use Campusfix\Backend\Config\Database;
 use Campusfix\Backend\Models\User;
 use InvalidArgumentException;
+use RuntimeException;
+use Throwable;
 
 class ProfileService
 {
@@ -53,7 +56,7 @@ class ProfileService
         return $this->getProfile($userId);
     }
 
-    // Change password after verifying current password
+    // Change password and invalidate existing sessions
     public function changePassword(int $userId, array $data): void
     {
         $currentPassword = $data['current_password'] ?? '';
@@ -87,6 +90,26 @@ class ProfileService
 
         $passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
 
-        $this->userModel->updatePassword($userId, $passwordHash);
+        $db = Database::connect();
+        $db->beginTransaction();
+
+        try {
+            if (!$this->userModel->updatePassword($userId, $passwordHash)) {
+                throw new RuntimeException('Unable to update account password.');
+            }
+
+            if (!$this->userModel->incrementTokenVersion($userId)) {
+                throw new RuntimeException('Unable to invalidate existing sessions.');
+            }
+
+            $db->commit();
+
+        } catch (Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+
+            throw $e;
+        }
     }
 }

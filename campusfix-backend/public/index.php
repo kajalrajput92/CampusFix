@@ -34,8 +34,9 @@ try {
     $response = $controller->$action();
 
     echo json_encode($response, JSON_PRETTY_PRINT);
-
-} catch (Throwable $e) {
+}
+catch (Throwable $e) {
+    error_log('[CampusFix API ERROR] ' . $e, 4);
     http_response_code(500);
 
     echo json_encode([

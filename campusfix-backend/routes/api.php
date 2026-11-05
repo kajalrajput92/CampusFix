@@ -10,6 +10,7 @@ use Campusfix\Backend\Controllers\LocationController;
 use Campusfix\Backend\Controllers\FeedbackController;
 use Campusfix\Backend\Controllers\NotificationController;
 use Campusfix\Backend\Controllers\ProfileController;
+use Campusfix\Backend\Controllers\PasswordResetController;
 return [
 
     // Health
@@ -28,6 +29,16 @@ return [
         AuthController::class,
         'login'
     ],
+    // Password Recovery
+'POST /api/auth/forgot-password' => [
+    PasswordResetController::class,
+    'forgotPassword'
+],
+
+'POST /api/auth/reset-password' => [
+    PasswordResetController::class,
+    'resetPassword'
+],
 
     'GET /api/auth/me' => [
         AuthController::class,

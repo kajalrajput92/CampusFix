@@ -3,7 +3,7 @@
 namespace Campusfix\Backend\Middleware;
 
 use Campusfix\Backend\Helpers\JwtHelper;
-use UnexpectedValueException;
+use Campusfix\Backend\Models\User;
 use Throwable;
 
 class AuthMiddleware
@@ -25,12 +25,31 @@ class AuthMiddleware
         }
 
         try {
-            return JwtHelper::verifyToken(trim($matches[1]));
+            $token = JwtHelper::verifyToken(trim($matches[1]));
+
+            $userModel = new User();
+            $currentVersion = $userModel->getTokenVersion(
+                (int) $token->sub
+            );
+
+            $tokenVersion = (int) ($token->token_version ?? 0);
+
+            if (
+                $currentVersion === false ||
+                $tokenVersion !== $currentVersion
+            ) {
+                throw new \RuntimeException(
+                    'Authentication token has been revoked.'
+                );
+            }
+
+            return $token;
+
         } catch (Throwable $e) {
             http_response_code(401);
 
             throw new \RuntimeException(
-                'Invalid or expired authentication token.'
+                'Invalid, expired or revoked authentication token.'
             );
         }
     }

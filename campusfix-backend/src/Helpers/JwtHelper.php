@@ -21,26 +21,29 @@ class JwtHelper
         return $secret;
     }
 
-    public static function generateToken(array $user): string
-    {
-        $now = time();
-        $expiry = (int) ($_ENV['JWT_EXPIRY'] ?? 3600);
 
-        $payload = [
-            'iss' => 'CampusFix',
-            'iat' => $now,
-            'exp' => $now + $expiry,
-            'sub' => (string) $user['user_id'],
-            'role' => $user['role'],
-            'email' => $user['email']
-        ];
+public static function generateToken(array $user): string
+{
+    $now = time();
+    $expiry = (int) ($_ENV['JWT_EXPIRY'] ?? 3600);
 
-        return JWT::encode(
-            $payload,
-            self::getSecret(),
-            'HS256'
-        );
-    }
+    $payload = [
+        'iss' => 'CampusFix',
+        'iat' => $now,
+        'exp' => $now + $expiry,
+        'sub' => (string) $user['user_id'],
+        'role' => $user['role'],
+        'email' => $user['email'],
+        'token_version' => (int) ($user['token_version'] ?? 0)
+    ];
+
+    return JWT::encode(
+        $payload,
+        self::getSecret(),
+        'HS256'
+    );
+}
+
 
     public static function verifyToken(string $token): object
     {

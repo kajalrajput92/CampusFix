@@ -1,4 +1,5 @@
 <?php
+
 namespace Campusfix\Backend\Config;
 
 use Dotenv\Dotenv;
@@ -12,5 +13,7 @@ class Environment
         $dotenv = Dotenv::createImmutable($rootPath);
 
         $dotenv->load();
+
+        date_default_timezone_set('Asia/Kolkata');
     }
 }
