@@ -6,20 +6,30 @@ use Campusfix\Backend\Config\Database;
 use Campusfix\Backend\Models\Complaint;
 use InvalidArgumentException;
 use PDO;
+use Throwable;
 
 class ComplaintService
 {
     private Complaint $complaintModel;
     private PDO $db;
+    private ImageUploadService $imageUploadService;
 
     public function __construct()
     {
         $this->complaintModel = new Complaint();
         $this->db = Database::connect();
+        $this->imageUploadService = new ImageUploadService();
     }
 
-    public function submit(int $studentId, array $data): array
-    {
+    /**
+     * Submit a complaint with optional images.
+     */
+    public function submit(
+        int $studentId,
+        array $data,
+        array $files = []
+    ): array {
+
         $title = trim($data['title'] ?? '');
         $description = trim($data['description'] ?? '');
         $category = trim($data['category'] ?? '');
@@ -75,7 +85,12 @@ class ComplaintService
             );
         }
 
-        $allowedPriorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
+        $allowedPriorities = [
+            'LOW',
+            'MEDIUM',
+            'HIGH',
+            'URGENT'
+        ];
 
         if (!in_array($priority, $allowedPriorities, true)) {
             throw new InvalidArgumentException(
@@ -88,7 +103,9 @@ class ComplaintService
             'SELECT location_id FROM locations WHERE location_id = :id'
         );
 
-        $locationCheck->execute(['id' => $locationId]);
+        $locationCheck->execute([
+            'id' => $locationId
+        ]);
 
         if (!$locationCheck->fetch()) {
             throw new InvalidArgumentException(
@@ -102,7 +119,9 @@ class ComplaintService
                 'SELECT department_id FROM departments WHERE department_id = :id'
             );
 
-            $departmentCheck->execute(['id' => $departmentId]);
+            $departmentCheck->execute([
+                'id' => $departmentId
+            ]);
 
             if (!$departmentCheck->fetch()) {
                 throw new InvalidArgumentException(
@@ -111,17 +130,45 @@ class ComplaintService
             }
         }
 
-        $complaintId = $this->complaintModel->create([
-            'student_id' => $studentId,
-            'location_id' => $locationId,
-            'department_id' => $departmentId,
-            'title' => $title,
-            'description' => $description,
-            'category' => $category,
-            'priority' => $priority
-        ]);
+        $imagePaths = [];
 
-        $complaint = $this->complaintModel->findById($complaintId);
+        try {
+            // Upload images only when files are supplied.
+            if (!empty($files)) {
+                $imagePaths = $this->imageUploadService->upload(
+                    $files
+                );
+            }
+
+            // Create complaint and image records atomically.
+            $complaintId = $this->complaintModel->create(
+                [
+                    'student_id' => $studentId,
+                    'location_id' => $locationId,
+                    'department_id' => $departmentId,
+                    'title' => $title,
+                    'description' => $description,
+                    'category' => $category,
+                    'priority' => $priority
+                ],
+                $imagePaths
+            );
+
+        } catch (Throwable $e) {
+
+            // Remove physical files if database insertion fails.
+            if (!empty($imagePaths)) {
+                $this->imageUploadService->deleteFiles(
+                    $imagePaths
+                );
+            }
+
+            throw $e;
+        }
+
+        $complaint = $this->complaintModel->findById(
+            $complaintId
+        );
 
         return [
             'complaint_id' => $complaintId,
@@ -129,168 +176,222 @@ class ComplaintService
             'title' => $complaint['title'],
             'status' => $complaint['status'],
             'priority' => $complaint['priority'],
-            'created_at' => $complaint['created_at']
+            'created_at' => $complaint['created_at'],
+            'images' => $this->complaintModel->findImagesByComplaintId(
+                $complaintId
+            )
         ];
     }
 
+    /**
+     * Get complaints submitted by a student.
+     */
     public function getStudentComplaints(int $studentId): array
     {
-        return $this->complaintModel->findByStudent($studentId);
+        return $this->complaintModel->findByStudent(
+            $studentId
+        );
     }
 
+    /**
+     * Get complaint details for a student.
+     */
     public function getComplaintDetails(
-    int $complaintId,
-    int $studentId
-): array {
+        int $complaintId,
+        int $studentId
+    ): array {
 
-    $complaint = $this->complaintModel->findDetailsById(
-        $complaintId,
-        $studentId
-    );
-
-    if (!$complaint) {
-        throw new InvalidArgumentException(
-            'Complaint not found.'
+        $complaint = $this->complaintModel->findDetailsById(
+            $complaintId,
+            $studentId
         );
+
+        if (!$complaint) {
+            throw new InvalidArgumentException(
+                'Complaint not found.'
+            );
+        }
+
+        $history = $this->complaintModel->getStatusHistory(
+            $complaintId
+        );
+
+        $images = $this->complaintModel->findImagesByComplaintId(
+            $complaintId
+        );
+
+        return [
+            'complaint' => $complaint,
+            'images' => $images,
+            'status_history' => $history
+        ];
     }
 
-    $history = $this->complaintModel->getStatusHistory(
-        $complaintId
-    );
+    /**
+     * Update complaint status by assigned staff.
+     */
+    public function updateComplaintStatus(
+        int $complaintId,
+        int $staffId,
+        string $status,
+        ?string $resolutionNotes = null
+    ): array {
 
-    return [
-        'complaint' => $complaint,
-        'status_history' => $history
-    ];
-}
-public function updateComplaintStatus(
-    int $complaintId,
-    int $staffId,
-    string $status,
-    ?string $resolutionNotes = null
-): array {
-    $allowedStatuses = ['IN_PROGRESS', 'RESOLVED'];
-
-    if (!in_array($status, $allowedStatuses, true)) {
-        throw new InvalidArgumentException(
-            'Invalid complaint status.'
-        );
-    }
-
-    if ($complaintId <= 0 || $staffId <= 0) {
-        throw new InvalidArgumentException(
-            'Invalid complaint or staff ID.'
-        );
-    }
-
-    if (
-        $status === 'RESOLVED' &&
-        trim((string) $resolutionNotes) === ''
-    ) {
-        throw new InvalidArgumentException(
-            'Resolution notes are required.'
-        );
-    }
-
-    return $this->complaintModel->updateStatus(
-        $complaintId,
-        $staffId,
-        $status,
-        $resolutionNotes
-    );
-}
-public function getAllComplaints(array $filters = []): array
-{
-    // Validate status
-    $allowedStatuses = [
-        'SUBMITTED',
-        'UNDER_REVIEW',
-        'ASSIGNED',
-        'IN_PROGRESS',
-        'RESOLVED',
-        'CLOSED',
-        'REJECTED'
-    ];
-
-    if (!empty($filters['status'])) {
-        $status = strtoupper(trim($filters['status']));
+        $allowedStatuses = [
+            'IN_PROGRESS',
+            'RESOLVED'
+        ];
 
         if (!in_array($status, $allowedStatuses, true)) {
             throw new InvalidArgumentException(
-                'Invalid complaint status filter.'
+                'Invalid complaint status.'
             );
         }
 
-        $filters['status'] = $status;
-    }
-
-    // Validate priority
-    $allowedPriorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
-
-    if (!empty($filters['priority'])) {
-        $priority = strtoupper(trim($filters['priority']));
-
-        if (!in_array($priority, $allowedPriorities, true)) {
+        if ($complaintId <= 0 || $staffId <= 0) {
             throw new InvalidArgumentException(
-                'Invalid complaint priority filter.'
+                'Invalid complaint or staff ID.'
             );
         }
 
-        $filters['priority'] = $priority;
-    }
+        if (
+            $status === 'RESOLVED' &&
+            trim((string) $resolutionNotes) === ''
+        ) {
+            throw new InvalidArgumentException(
+                'Resolution notes are required.'
+            );
+        }
 
-    // Validate pagination
-    $page = filter_var(
-        $filters['page'] ?? 1,
-        FILTER_VALIDATE_INT
-    );
-
-    $perPage = filter_var(
-        $filters['per_page'] ?? 10,
-        FILTER_VALIDATE_INT
-    );
-
-    if ($page === false || $page < 1) {
-        throw new InvalidArgumentException('Invalid page number.');
-    }
-
-    if ($perPage === false || $perPage < 1 || $perPage > 100) {
-        throw new InvalidArgumentException(
-            'Per page must be between 1 and 100.'
+        return $this->complaintModel->updateStatus(
+            $complaintId,
+            $staffId,
+            $status,
+            $resolutionNotes
         );
     }
 
-    $filters['page'] = $page;
-    $filters['per_page'] = $perPage;
+    /**
+     * Get all complaints with filters and pagination.
+     */
+    public function getAllComplaints(
+        array $filters = []
+    ): array {
 
-    return $this->complaintModel->findAll($filters);
-}
+        $allowedStatuses = [
+            'SUBMITTED',
+            'UNDER_REVIEW',
+            'ASSIGNED',
+            'IN_PROGRESS',
+            'RESOLVED',
+            'CLOSED',
+            'REJECTED'
+        ];
 
-public function getAdminComplaintDetails(int $complaintId): array
-{
-    if ($complaintId <= 0) {
-        throw new InvalidArgumentException(
-            'Invalid complaint ID.'
+        if (!empty($filters['status'])) {
+            $status = strtoupper(
+                trim($filters['status'])
+            );
+
+            if (!in_array($status, $allowedStatuses, true)) {
+                throw new InvalidArgumentException(
+                    'Invalid complaint status filter.'
+                );
+            }
+
+            $filters['status'] = $status;
+        }
+
+        $allowedPriorities = [
+            'LOW',
+            'MEDIUM',
+            'HIGH',
+            'URGENT'
+        ];
+
+        if (!empty($filters['priority'])) {
+            $priority = strtoupper(
+                trim($filters['priority'])
+            );
+
+            if (!in_array($priority, $allowedPriorities, true)) {
+                throw new InvalidArgumentException(
+                    'Invalid complaint priority filter.'
+                );
+            }
+
+            $filters['priority'] = $priority;
+        }
+
+        $page = filter_var(
+            $filters['page'] ?? 1,
+            FILTER_VALIDATE_INT
+        );
+
+        $perPage = filter_var(
+            $filters['per_page'] ?? 10,
+            FILTER_VALIDATE_INT
+        );
+
+        if ($page === false || $page < 1) {
+            throw new InvalidArgumentException(
+                'Invalid page number.'
+            );
+        }
+
+        if (
+            $perPage === false ||
+            $perPage < 1 ||
+            $perPage > 100
+        ) {
+            throw new InvalidArgumentException(
+                'Per page must be between 1 and 100.'
+            );
+        }
+
+        $filters['page'] = $page;
+        $filters['per_page'] = $perPage;
+
+        return $this->complaintModel->findAll(
+            $filters
         );
     }
 
-    $complaint = $this->complaintModel->findAdminDetailsById(
-        $complaintId
-    );
+    /**
+     * Get complete complaint details for admin.
+     */
+    public function getAdminComplaintDetails(
+        int $complaintId
+    ): array {
 
-    if (!$complaint) {
-        throw new InvalidArgumentException(
-            'Complaint not found.'
+        if ($complaintId <= 0) {
+            throw new InvalidArgumentException(
+                'Invalid complaint ID.'
+            );
+        }
+
+        $complaint = $this->complaintModel->findAdminDetailsById(
+            $complaintId
         );
+
+        if (!$complaint) {
+            throw new InvalidArgumentException(
+                'Complaint not found.'
+            );
+        }
+
+        $history = $this->complaintModel->getStatusHistory(
+            $complaintId
+        );
+
+        $images = $this->complaintModel->findImagesByComplaintId(
+            $complaintId
+        );
+
+        return [
+            'complaint' => $complaint,
+            'images' => $images,
+            'status_history' => $history
+        ];
     }
-
-    $history = $this->complaintModel->getStatusHistory(
-        $complaintId
-    );
-
-    return [
-        'complaint' => $complaint,
-        'status_history' => $history
-    ];
-}
 }
