@@ -21,7 +21,7 @@ class DepartmentController
     public function index(): array
     {
         try {
-            AuthMiddleware::authorize(['ADMIN']);
+            AuthMiddleware::authorize(['ADMIN', 'STUDENT', 'STAFF']);
 
             $departments = $this->departmentService
                 ->getAllDepartments();
@@ -39,9 +39,16 @@ class DepartmentController
                 http_response_code(500);
             }
 
+            $statusCode = http_response_code();
+            $message = $statusCode === 401
+                ? 'Unauthorized. Invalid or missing token.'
+                : ($statusCode === 403
+                    ? 'Forbidden. You do not have permission.'
+                    : 'Unable to retrieve departments.');
+
             return [
                 'success' => false,
-                'message' => 'Unable to retrieve departments.'
+                'message' => $message
             ];
         }
     }
@@ -91,9 +98,16 @@ class DepartmentController
                 http_response_code(500);
             }
 
+            $statusCode = http_response_code();
+            $message = $statusCode === 401
+                ? 'Unauthorized. Invalid or missing token.'
+                : ($statusCode === 403
+                    ? 'Forbidden. You do not have permission.'
+                    : 'Unable to retrieve department details.');
+
             return [
                 'success' => false,
-                'message' => 'Unable to retrieve department details.'
+                'message' => $message
             ];
         }
     }
@@ -160,9 +174,16 @@ class DepartmentController
                 http_response_code(500);
             }
 
+            $statusCode = http_response_code();
+            $message = $statusCode === 401
+                ? 'Unauthorized. Invalid or missing token.'
+                : ($statusCode === 403
+                    ? 'Forbidden. You do not have permission.'
+                    : 'Unable to create department.');
+
             return [
                 'success' => false,
-                'message' => 'Unable to create department.'
+                'message' => $message
             ];
         }
     }
@@ -242,9 +263,16 @@ class DepartmentController
                 http_response_code(500);
             }
 
+            $statusCode = http_response_code();
+            $message = $statusCode === 401
+                ? 'Unauthorized. Invalid or missing token.'
+                : ($statusCode === 403
+                    ? 'Forbidden. You do not have permission.'
+                    : 'Unable to update department.');
+
             return [
                 'success' => false,
-                'message' => 'Unable to update department.'
+                'message' => $message
             ];
         }
     }

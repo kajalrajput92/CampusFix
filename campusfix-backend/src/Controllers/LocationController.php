@@ -16,26 +16,26 @@ class LocationController
         $this->locationService = new LocationService();
     }
 
-    public function index(): void
+    public function index(): array
     {
         try {
-            AuthMiddleware::authorize(['ADMIN']);
+            AuthMiddleware::authorize(['ADMIN', 'STUDENT', 'STAFF']);
 
             $locations = $this->locationService->getAllLocations();
 
             http_response_code(200);
 
-            echo json_encode([
+            return [
                 'success' => true,
                 'message' => 'Locations retrieved successfully.',
                 'data' => $locations
-            ]);
+            ];
         } catch (Throwable $e) {
-            $this->handleError($e);
+            return $this->handleError($e);
         }
     }
 
-    public function show(): void
+    public function show(): array
     {
         try {
             AuthMiddleware::authorize(['ADMIN']);
@@ -56,17 +56,17 @@ class LocationController
 
             http_response_code(200);
 
-            echo json_encode([
+            return [
                 'success' => true,
                 'message' => 'Location retrieved successfully.',
                 'data' => $location
-            ]);
+            ];
         } catch (Throwable $e) {
-            $this->handleError($e);
+            return $this->handleError($e);
         }
     }
 
-    public function store(): void
+    public function store(): array
     {
         try {
             AuthMiddleware::authorize(['ADMIN']);
@@ -87,17 +87,17 @@ class LocationController
 
             http_response_code(201);
 
-            echo json_encode([
+            return [
                 'success' => true,
                 'message' => 'Location created successfully.',
                 'data' => $location
-            ]);
+            ];
         } catch (Throwable $e) {
-            $this->handleError($e);
+            return $this->handleError($e);
         }
     }
 
-    public function update(): void
+    public function update(): array
     {
         try {
             AuthMiddleware::authorize(['ADMIN']);
@@ -129,66 +129,63 @@ class LocationController
 
             http_response_code(200);
 
-            echo json_encode([
+            return [
                 'success' => true,
                 'message' => 'Location updated successfully.',
                 'data' => $location
-            ]);
+            ];
         } catch (Throwable $e) {
-            $this->handleError($e);
+            return $this->handleError($e);
         }
     }
 
-    private function handleError(Throwable $e): void
+    private function handleError(Throwable $e): array
     {
         if ($e instanceof InvalidArgumentException) {
             http_response_code(422);
 
-            echo json_encode([
+            return [
                 'success' => false,
                 'message' => $e->getMessage()
-            ]);
-
-            return;
+            ];
         }
 
+        $statusCode = http_response_code();
         $message = $e->getMessage();
 
         if (
+            $statusCode === 401 ||
             str_contains($message, 'Unauthorized') ||
             str_contains($message, 'token')
         ) {
             http_response_code(401);
 
-            echo json_encode([
+            return [
                 'success' => false,
                 'message' => 'Unauthorized access.'
-            ]);
-
-            return;
+            ];
         }
 
         if (
+            $statusCode === 403 ||
             str_contains($message, 'Forbidden') ||
             str_contains($message, 'permission')
         ) {
             http_response_code(403);
 
-            echo json_encode([
+            return [
                 'success' => false,
                 'message' => 'Access forbidden.'
-            ]);
-
-            return;
+            ];
         }
 
-        error_log($e);
+        error_log($e->getMessage());
 
         http_response_code(500);
 
-        echo json_encode([
+        return [
             'success' => false,
             'message' => 'Internal server error.'
-        ]);
+        ];
     }
 }

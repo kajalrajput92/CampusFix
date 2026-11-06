@@ -56,9 +56,20 @@ return [
         'myComplaints'
     ],
     'GET /api/complaints/show' => [
-    ComplaintController::class,
-    'show'
-],
+        ComplaintController::class,
+        'show'
+    ],
+
+    // Catalog Management (Shared Read Access)
+    'GET /api/locations' => [
+        LocationController::class,
+        'index'
+    ],
+
+    'GET /api/departments' => [
+        DepartmentController::class,
+        'index'
+    ],
 // Admin Management
 'POST /api/admin/complaints/assign' => [
     AdminController::class,
