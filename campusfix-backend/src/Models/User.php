@@ -381,18 +381,4 @@ public function getTokenVersion(int $userId): int|false
 
     return (int) $result['token_version'];
 }
-
-public function incrementTokenVersion(int $userId): bool
-{
-    $sql = "
-        UPDATE users
-        SET token_version = token_version + 1
-        WHERE user_id = :user_id
-    ";
-
-    $stmt = $this->db->prepare($sql);
-    $stmt->execute(['user_id' => $userId]);
-
-    return $stmt->rowCount() > 0;
-}
 }
