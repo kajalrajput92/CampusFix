@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { StrictMode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   Activity, AlertCircle, Bell, Building2, Check, ChevronDown, ChevronLeft,
@@ -312,4 +312,4 @@ function ProtectedImage({ imageId, token }) {
 function Modal({ title, close, children }) { useEffect(() => { const handle = (event) => { if (event.key === 'Escape') close(); }; window.addEventListener('keydown', handle); return () => window.removeEventListener('keydown', handle); }, [close]); return <div className="modal-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}><section className="modal" role="dialog" aria-modal="true" aria-label={title}><div className="modal-head"><h2>{title}</h2><button className="icon-button" aria-label="Close dialog" onClick={close}><X size={19} /></button></div><div className="modal-body">{children}</div></section></div>; }
 function Pager({ page, pages, onPage }) { if (pages <= 1) return null; return <div className="pager"><span>Page {page} of {pages}</span><div><button className="icon-button" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label="Previous page"><ChevronLeft size={18} /></button><button className="icon-button" disabled={page >= pages} onClick={() => onPage(page + 1)} aria-label="Next page"><ChevronRight size={18} /></button></div></div>; }
 
-createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>);
+createRoot(document.getElementById('root')).render(<StrictMode><App /></StrictMode>);
