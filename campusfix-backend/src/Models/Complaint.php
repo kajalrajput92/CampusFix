@@ -3,6 +3,7 @@
 namespace Campusfix\Backend\Models;
 
 use Campusfix\Backend\Config\Database;
+use Campusfix\Backend\Services\ConflictException;
 use PDO;
 use InvalidArgumentException;
 use Throwable;
@@ -345,6 +346,13 @@ class Complaint
         return $stmt->fetchAll();
     }
 
+    public function getPriorityHistory(int $complaintId): array
+    {
+        $stmt = $this->db->prepare('SELECT h.old_priority,h.new_priority,h.changed_at,u.full_name AS changed_by_name FROM complaint_priority_history h INNER JOIN users u ON u.user_id=h.changed_by WHERE h.complaint_id=:id ORDER BY h.changed_at ASC,h.priority_history_id ASC');
+        $stmt->execute(['id' => $complaintId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     /**
      * Retrieve images belonging to a complaint.
      */
@@ -369,6 +377,75 @@ class Complaint
         ]);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function findStaffDetailsByAssignment(int $complaintId, int $staffId): array|false
+    {
+        $sql = "SELECT c.complaint_id,c.complaint_number,c.title,c.description,c.category,c.priority,c.status,c.resolution_notes,c.created_at,c.updated_at,c.resolved_at,c.closed_at,l.building_name,l.block_name,l.floor_number,l.room_number,d.department_name,ca.assigned_at FROM complaints c INNER JOIN complaint_assignments ca ON ca.complaint_id=c.complaint_id AND ca.assignment_id=(SELECT MAX(ca2.assignment_id) FROM complaint_assignments ca2 WHERE ca2.complaint_id=c.complaint_id) LEFT JOIN locations l ON l.location_id=c.location_id LEFT JOIN departments d ON d.department_id=c.department_id WHERE c.complaint_id=:complaint_id AND ca.staff_id=:staff_id LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['complaint_id' => $complaintId, 'staff_id' => $staffId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function findImageForViewer(int $imageId, string $role, int $userId): array|false
+    {
+        $sql = 'SELECT ci.image_id,ci.image_path,ci.complaint_id FROM complaint_images ci INNER JOIN complaints c ON c.complaint_id=ci.complaint_id WHERE ci.image_id=:image_id';
+        if ($role === 'STUDENT') $sql .= ' AND c.student_id=:user_id';
+        elseif ($role === 'STAFF') $sql .= ' AND EXISTS (SELECT 1 FROM complaint_assignments ca WHERE ca.complaint_id=c.complaint_id AND ca.staff_id=:user_id AND ca.assignment_id=(SELECT MAX(ca2.assignment_id) FROM complaint_assignments ca2 WHERE ca2.complaint_id=c.complaint_id))';
+        elseif ($role !== 'ADMIN') return false;
+        $stmt = $this->db->prepare($sql);
+        $params = ['image_id' => $imageId];
+        if ($role !== 'ADMIN') $params['user_id'] = $userId;
+        $stmt->execute($params);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function updateAdminStatus(int $complaintId, int $adminId, string $newStatus, ?string $remarks): array
+    {
+        $this->db->beginTransaction();
+        try {
+            $stmt = $this->db->prepare('SELECT status FROM complaints WHERE complaint_id=:id FOR UPDATE');
+            $stmt->execute(['id' => $complaintId]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$row) throw new InvalidArgumentException('Complaint not found.');
+            $oldStatus = $row['status'];
+            $transitions = [
+                'SUBMITTED' => ['UNDER_REVIEW', 'REJECTED'],
+                'UNDER_REVIEW' => ['REJECTED'],
+                'RESOLVED' => ['CLOSED'],
+            ];
+            if (!in_array($newStatus, $transitions[$oldStatus] ?? [], true)) throw new ConflictException('Invalid admin complaint status transition.');
+            $update = $this->db->prepare("UPDATE complaints SET status=:status,closed_at=CASE WHEN :status='CLOSED' THEN CURRENT_TIMESTAMP ELSE closed_at END WHERE complaint_id=:id");
+            $update->execute(['status' => $newStatus, 'id' => $complaintId]);
+            $history = $this->db->prepare('INSERT INTO complaint_status_history (complaint_id,changed_by,old_status,new_status,remarks) VALUES (:complaint_id,:admin_id,:old_status,:new_status,:remarks)');
+            $history->execute(['complaint_id' => $complaintId, 'admin_id' => $adminId, 'old_status' => $oldStatus, 'new_status' => $newStatus, 'remarks' => $remarks]);
+            $this->db->commit();
+            return ['complaint_id' => $complaintId, 'old_status' => $oldStatus, 'new_status' => $newStatus];
+        } catch (Throwable $error) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            throw $error;
+        }
+    }
+
+    public function updatePriority(int $complaintId, int $adminId, string $newPriority): array
+    {
+        $this->db->beginTransaction();
+        try {
+            $stmt = $this->db->prepare('SELECT status,priority FROM complaints WHERE complaint_id=:id FOR UPDATE');
+            $stmt->execute(['id' => $complaintId]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$row) throw new InvalidArgumentException('Complaint not found.');
+            if (in_array($row['status'], ['CLOSED', 'REJECTED'], true)) throw new ConflictException('Priority cannot be changed for a closed or rejected complaint.');
+            $this->db->prepare('UPDATE complaints SET priority=:priority WHERE complaint_id=:id')->execute(['priority' => $newPriority, 'id' => $complaintId]);
+            if ($row['priority'] !== $newPriority) {
+                $this->db->prepare('INSERT INTO complaint_priority_history (complaint_id,changed_by,old_priority,new_priority) VALUES (:complaint_id,:admin_id,:old_priority,:new_priority)')->execute(['complaint_id' => $complaintId, 'admin_id' => $adminId, 'old_priority' => $row['priority'], 'new_priority' => $newPriority]);
+            }
+            $this->db->commit();
+            return ['complaint_id' => $complaintId, 'old_priority' => $row['priority'], 'new_priority' => $newPriority];
+        } catch (Throwable $error) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            throw $error;
+        }
     }
 
     /**

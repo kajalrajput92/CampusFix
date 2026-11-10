@@ -147,7 +147,8 @@ class FeedbackController
                 'rating' => $_GET['rating'] ?? '',
                 'search' => $_GET['search'] ?? '',
                 'page' => $_GET['page'] ?? 1,
-                'limit' => $_GET['limit'] ?? 10
+                // Keep the old limit query parameter as a compatibility alias.
+                'per_page' => $_GET['per_page'] ?? $_GET['limit'] ?? 10
             ];
 
             $result = $this->feedbackService->getAllFeedback(

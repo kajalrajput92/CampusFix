@@ -149,4 +149,16 @@ class AuthController
         ];
     }
 }
+
+    public function logout(): array
+    {
+        try {
+            $user = AuthMiddleware::authenticate();
+            $this->authService->logout((int) $user->sub);
+            return ['success' => true, 'message' => 'Session revoked successfully.', 'data' => null];
+        } catch (Throwable $e) {
+            if (http_response_code() < 400) http_response_code(500);
+            return ['success' => false, 'message' => http_response_code() === 401 ? 'Unauthorized. Invalid or expired token.' : 'Unable to revoke session.'];
+        }
+    }
 }

@@ -8,6 +8,9 @@ use InvalidArgumentException;
 use Throwable;
 use Campusfix\Backend\Services\StaffService;
 use Campusfix\Backend\Config\Database;
+use Campusfix\Backend\Services\AdminUserService;
+use Campusfix\Backend\Services\ConflictException;
+use PDOException;
 
 class AdminController
 {
@@ -417,6 +420,174 @@ public function complaintDetails(): array
                 'success' => false,
                 'message' => 'Unable to update staff status.'
             ];
+        }
+    }
+
+    public function students(): array
+    {
+        try {
+            AuthMiddleware::authorize(['ADMIN']);
+            $result = (new AdminUserService())->students($_GET);
+            return ['success' => true, 'message' => 'Students retrieved successfully.', 'data' => $result['students'], 'pagination' => $result['pagination']];
+        } catch (InvalidArgumentException $e) {
+            http_response_code(422);
+            return ['success' => false, 'message' => $e->getMessage()];
+        } catch (Throwable $e) {
+            error_log($e->getMessage());
+            if (http_response_code() < 400) http_response_code(500);
+            return ['success' => false, 'message' => 'Unable to retrieve students.'];
+        }
+    }
+
+    public function studentDetails(): array
+    {
+        try {
+            AuthMiddleware::authorize(['ADMIN']);
+            $id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
+            if ($id === false || $id === null || $id <= 0) {
+                http_response_code(422);
+                return ['success' => false, 'message' => 'Valid student ID is required.'];
+            }
+            return ['success' => true, 'message' => 'Student details retrieved successfully.', 'data' => (new AdminUserService())->student($id)];
+        } catch (InvalidArgumentException $e) {
+            http_response_code(404);
+            return ['success' => false, 'message' => $e->getMessage()];
+        } catch (Throwable $e) {
+            error_log($e->getMessage());
+            if (http_response_code() < 400) http_response_code(500);
+            return ['success' => false, 'message' => 'Unable to retrieve student details.'];
+        }
+    }
+
+    public function studentComplaints(): array
+    {
+        try {
+            AuthMiddleware::authorize(['ADMIN']);
+            $id = filter_var($_GET['student_id'] ?? null, FILTER_VALIDATE_INT);
+            if ($id === false || $id === null || $id <= 0) {
+                http_response_code(422);
+                return ['success' => false, 'message' => 'Valid student_id is required.'];
+            }
+            $result = (new AdminUserService())->studentComplaints($id, $_GET);
+            return ['success' => true, 'message' => 'Student complaints retrieved successfully.', 'data' => $result['complaints'], 'pagination' => $result['pagination']];
+        } catch (InvalidArgumentException $e) {
+            http_response_code(404);
+            return ['success' => false, 'message' => $e->getMessage()];
+        } catch (Throwable $e) {
+            error_log($e->getMessage());
+            if (http_response_code() < 400) http_response_code(500);
+            return ['success' => false, 'message' => 'Unable to retrieve student complaints.'];
+        }
+    }
+
+    public function updateStudentStatus(): array
+    {
+        try {
+            AuthMiddleware::authorize(['ADMIN']);
+            $data = json_decode(file_get_contents('php://input'), true);
+            if (!is_array($data)) throw new InvalidArgumentException('A valid JSON request body is required.');
+            $id = filter_var($data['student_id'] ?? null, FILTER_VALIDATE_INT);
+            if ($id === false || $id === null || $id <= 0 || !array_key_exists('is_active', $data)) throw new InvalidArgumentException('Valid student_id and is_active are required.');
+            $student = (new AdminUserService())->changeStudentStatus($id, $data['is_active']);
+            return ['success' => true, 'message' => 'Student status updated successfully. Existing sessions were revoked.', 'data' => $student];
+        } catch (InvalidArgumentException $e) {
+            http_response_code(422);
+            return ['success' => false, 'message' => $e->getMessage()];
+        } catch (Throwable $e) {
+            error_log($e->getMessage());
+            if (http_response_code() < 400) http_response_code(500);
+            return ['success' => false, 'message' => 'Unable to update student status.'];
+        }
+    }
+
+    public function createStaff(): array
+    {
+        try {
+            AuthMiddleware::authorize(['ADMIN']);
+            $data = json_decode(file_get_contents('php://input'), true);
+            if (!is_array($data)) throw new InvalidArgumentException('A valid JSON request body is required.');
+            $staff = (new AdminUserService())->createStaff($data);
+            http_response_code(201);
+            return ['success' => true, 'message' => 'Staff account created successfully.', 'data' => $staff];
+        } catch (ConflictException|PDOException $e) {
+            http_response_code(409);
+            return ['success' => false, 'message' => $e instanceof ConflictException ? $e->getMessage() : 'Email or employee ID already exists.'];
+        } catch (InvalidArgumentException $e) {
+            http_response_code(422);
+            return ['success' => false, 'message' => $e->getMessage()];
+        } catch (Throwable $e) {
+            error_log($e->getMessage());
+            if (http_response_code() < 400) http_response_code(500);
+            return ['success' => false, 'message' => 'Unable to create staff account.'];
+        }
+    }
+
+    public function updateStaff(): array
+    {
+        try {
+            AuthMiddleware::authorize(['ADMIN']);
+            $data = json_decode(file_get_contents('php://input'), true);
+            if (!is_array($data)) throw new InvalidArgumentException('A valid JSON request body is required.');
+            $id = filter_var($data['staff_id'] ?? null, FILTER_VALIDATE_INT);
+            if ($id === false || $id === null || $id <= 0) throw new InvalidArgumentException('Valid staff_id is required.');
+            $staff = (new AdminUserService())->updateStaff($id, $data);
+            return ['success' => true, 'message' => 'Staff account updated successfully. Existing sessions were revoked.', 'data' => $staff];
+        } catch (ConflictException|PDOException $e) {
+            http_response_code(409);
+            return ['success' => false, 'message' => $e instanceof ConflictException ? $e->getMessage() : 'Email or employee ID already exists.'];
+        } catch (InvalidArgumentException $e) {
+            http_response_code(422);
+            return ['success' => false, 'message' => $e->getMessage()];
+        } catch (Throwable $e) {
+            error_log($e->getMessage());
+            if (http_response_code() < 400) http_response_code(500);
+            return ['success' => false, 'message' => 'Unable to update staff account.'];
+        }
+    }
+
+    public function updateComplaintStatus(): array
+    {
+        try {
+            $admin = AuthMiddleware::authorize(['ADMIN']);
+            $data = json_decode(file_get_contents('php://input'), true);
+            if (!is_array($data)) throw new InvalidArgumentException('A valid JSON request body is required.');
+            $id = filter_var($data['complaint_id'] ?? null, FILTER_VALIDATE_INT);
+            if ($id === false || $id === null || $id <= 0) throw new InvalidArgumentException('Valid complaint_id is required.');
+            $result = (new \Campusfix\Backend\Services\ComplaintService())->updateAdminStatus($id, (int) $admin->sub, (string) ($data['status'] ?? ''), isset($data['remarks']) ? (string) $data['remarks'] : null);
+            return ['success' => true, 'message' => 'Complaint status updated successfully.', 'data' => $result];
+        } catch (ConflictException $e) {
+            http_response_code(409);
+            return ['success' => false, 'message' => $e->getMessage()];
+        } catch (InvalidArgumentException $e) {
+            http_response_code($e->getMessage() === 'Complaint not found.' ? 404 : 422);
+            return ['success' => false, 'message' => $e->getMessage()];
+        } catch (Throwable $e) {
+            error_log($e->getMessage());
+            if (http_response_code() < 400) http_response_code(500);
+            return ['success' => false, 'message' => 'Unable to update complaint status.'];
+        }
+    }
+
+    public function updateComplaintPriority(): array
+    {
+        try {
+            $admin = AuthMiddleware::authorize(['ADMIN']);
+            $data = json_decode(file_get_contents('php://input'), true);
+            if (!is_array($data)) throw new InvalidArgumentException('A valid JSON request body is required.');
+            $id = filter_var($data['complaint_id'] ?? null, FILTER_VALIDATE_INT);
+            if ($id === false || $id === null || $id <= 0) throw new InvalidArgumentException('Valid complaint_id is required.');
+            $result = (new \Campusfix\Backend\Services\ComplaintService())->updateAdminPriority($id, (int) $admin->sub, (string) ($data['priority'] ?? ''));
+            return ['success' => true, 'message' => 'Complaint priority updated successfully.', 'data' => $result];
+        } catch (ConflictException $e) {
+            http_response_code(409);
+            return ['success' => false, 'message' => $e->getMessage()];
+        } catch (InvalidArgumentException $e) {
+            http_response_code($e->getMessage() === 'Complaint not found.' ? 404 : 422);
+            return ['success' => false, 'message' => $e->getMessage()];
+        } catch (Throwable $e) {
+            error_log($e->getMessage());
+            if (http_response_code() < 400) http_response_code(500);
+            return ['success' => false, 'message' => 'Unable to update complaint priority.'];
         }
     }
 

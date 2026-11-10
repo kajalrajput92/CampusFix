@@ -8,6 +8,27 @@ use Throwable;
 
 class StaffController
 {
+    public function complaintDetails(): array
+    {
+        try {
+            $staff = AuthMiddleware::authorize(['STAFF']);
+            $id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
+            if ($id === false || $id === null || $id <= 0) {
+                http_response_code(422);
+                return ['success' => false, 'message' => 'Valid complaint ID is required.'];
+            }
+            $result = (new \Campusfix\Backend\Services\ComplaintService())->getStaffComplaintDetails($id, (int) $staff->sub);
+            return ['success' => true, 'message' => 'Assigned complaint details retrieved successfully.', 'data' => $result];
+        } catch (\InvalidArgumentException $e) {
+            http_response_code(404);
+            return ['success' => false, 'message' => $e->getMessage()];
+        } catch (Throwable $e) {
+            error_log($e->getMessage());
+            if (http_response_code() < 400) http_response_code(500);
+            return ['success' => false, 'message' => 'Unable to retrieve assigned complaint details.'];
+        }
+    }
+
     /**
      * Get complaints assigned to authenticated staff.
      */

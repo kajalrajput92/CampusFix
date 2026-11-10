@@ -1,22 +1,25 @@
+﻿# CampusFix
 
-# CampusFix
-## Smart Campus Issue Reporting & Resolution Platform
+**Smart Campus Issue Reporting & Resolution Platform**
 
-CampusFix is a QR-enabled campus maintenance and complaint management platform connecting students, staff members, and college administrators.
+CampusFix is a QR-enabled campus maintenance and complaint management platform that helps students and staff report campus issues, track resolutions, and improve facilities. College administrators can manage assignments, escalation, and analytics.
 
-### Technology Stack
-- Flutter and Dart
-- React
-- Java and Spring Boot
+## Technology Stack
+
+- Flutter and Dart (mobile app)
+- React (admin interface)
+- PHP backend
 - MySQL
-- Spring Security and JWT
+- JWT authentication
 
-### User Roles
-- STUDENT
-- STAFF
-- ADMIN
+## User Roles
 
-### Core Features
+- Student
+- Staff
+- Admin
+
+## Core Features
+
 - QR-based location identification
 - Complaint registration and tracking
 - Staff assignment
@@ -25,12 +28,10 @@ CampusFix is a QR-enabled campus maintenance and complaint management platform c
 - Resolution proof and feedback
 - Admin analytics
 
-### Project Structure
-- campusfix-backend/
-- campusfix-admin/
-- campusfix-mobile/
-- database/
-- documentation/
+## Project Structure
 
-### Team
-Two student developers.
+- `campusfix-mobile/` — Flutter mobile app
+- `campusfix-admin/` — admin interface
+- `campusfix-backend/` — API backend
+- `database/` — database migrations
+- `documentation/` — project documentation

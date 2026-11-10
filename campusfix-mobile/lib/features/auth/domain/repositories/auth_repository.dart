@@ -26,6 +26,9 @@ abstract class AuthRepository {
   /// Logs out active user, clearing local secure storage.
   Future<void> logout();
 
+  /// Clears local state without contacting the API after a session is expired.
+  Future<void> clearLocalSession() async {}
+
   /// Requests password reset email via POST /api/auth/forgot-password.
   Future<String> forgotPassword({required String email});
 

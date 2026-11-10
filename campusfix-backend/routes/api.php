@@ -45,6 +45,11 @@ return [
         'me'
     ],
 
+    'POST /api/auth/logout' => [
+        AuthController::class,
+        'logout'
+    ],
+
     // Complaint Management
     'POST /api/complaints' => [
         ComplaintController::class,
@@ -58,6 +63,10 @@ return [
     'GET /api/complaints/show' => [
         ComplaintController::class,
         'show'
+    ],
+    'GET /api/complaints/image' => [
+        ComplaintController::class,
+        'image'
     ],
 
     // Catalog Management (Shared Read Access)
@@ -79,6 +88,10 @@ return [
 'GET /api/staff/complaints/my' => [
     StaffController::class,
     'myAssignments'
+],
+'GET /api/staff/complaints/show' => [
+    StaffController::class,
+    'complaintDetails'
 ],
 'PATCH /api/staff/complaints/status' => [
     StaffController::class,
@@ -110,6 +123,38 @@ return [
     AdminController::class,
     'updateStaffStatus'
 ],
+'POST /api/admin/staff' => [
+    AdminController::class,
+    'createStaff'
+],
+'PATCH /api/admin/staff/update' => [
+    AdminController::class,
+    'updateStaff'
+],
+'GET /api/admin/students' => [
+    AdminController::class,
+    'students'
+],
+'GET /api/admin/students/show' => [
+    AdminController::class,
+    'studentDetails'
+],
+'GET /api/admin/students/complaints' => [
+    AdminController::class,
+    'studentComplaints'
+],
+'PATCH /api/admin/students/status' => [
+    AdminController::class,
+    'updateStudentStatus'
+],
+'PATCH /api/admin/complaints/status' => [
+    AdminController::class,
+    'updateComplaintStatus'
+],
+'PATCH /api/admin/complaints/priority' => [
+    AdminController::class,
+    'updateComplaintPriority'
+],
 'GET /api/admin/departments' => [
     DepartmentController::class,
     'index'
@@ -128,6 +173,10 @@ return [
 'PATCH /api/admin/departments/update' => [
     DepartmentController::class,
     'update'
+],
+'DELETE /api/admin/departments/delete' => [
+    DepartmentController::class,
+    'delete'
 ],
 'GET /api/admin/locations' => [
     LocationController::class,

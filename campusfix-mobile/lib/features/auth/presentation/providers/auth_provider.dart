@@ -176,7 +176,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     // Avoid re-triggering if already unauthenticated
     if (state.isUnauthenticated) return;
 
-    await _authRepository.logout();
+    await _authRepository.clearLocalSession();
     state = AuthState.unauthenticated(
       message: 'Your session has expired. Please log in again.',
     );

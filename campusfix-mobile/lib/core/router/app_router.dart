@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/admin/presentation/admin_mobile_landing_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
@@ -9,7 +10,9 @@ import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/reset_password_screen.dart';
 import '../../features/auth/presentation/welcome_screen.dart';
 import '../../features/staff/presentation/staff_dashboard_screen.dart';
+import '../../features/staff/presentation/staff_complaint_screens.dart';
 import '../../features/student/presentation/student_dashboard_screen.dart';
+import '../../features/student/presentation/complaint_screens.dart';
 import '../constants/app_constants.dart';
 import '../widgets/placeholder_screen.dart';
 import 'route_constants.dart';
@@ -30,48 +33,18 @@ class RouterNotifier extends ChangeNotifier {
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = RouterNotifier(ref);
 
-  return GoRouter(
+  final router = GoRouter(
     navigatorKey: AppRouter.navigatorKey,
     initialLocation: RouteConstants.welcome,
     debugLogDiagnostics: false,
     refreshListenable: notifier,
     redirect: (context, state) {
       final authState = ref.read(authNotifierProvider);
-      final session = authState.session;
-      final isAuthenticated = authState.isAuthenticated;
-      final location = state.uri.path;
-
-      final isAuthRoute =
-          location == RouteConstants.welcome ||
-          location == RouteConstants.login ||
-          location == RouteConstants.register ||
-          location == RouteConstants.forgotPassword ||
-          location == RouteConstants.resetPassword;
-
-      // 1. Unauthenticated users cannot access protected dashboards
-      if (!isAuthenticated) {
-        if (!isAuthRoute) {
-          return RouteConstants.welcome;
-        }
-        return null;
-      }
-
-      // 2. Authenticated users are redirected away from login/welcome screens to their portal
-      if (isAuthRoute) {
-        return AppRouter.resolveRoleDestination(session?.role ?? 'STUDENT');
-      }
-
-      // 3. Enforce strict role boundary (Students cannot access Staff dashboards and vice versa)
-      if (session != null) {
-        if (session.isStudent && location.startsWith('/staff')) {
-          return RouteConstants.studentDashboard;
-        }
-        if (session.isStaff && location.startsWith('/student')) {
-          return RouteConstants.staffDashboard;
-        }
-      }
-
-      return null;
+      return AppRouter.redirectForAccess(
+        isAuthenticated: authState.isAuthenticated,
+        role: authState.session?.role,
+        path: state.uri.path,
+      );
     },
     routes: [
       // Entry / Welcome Screen
@@ -117,11 +90,44 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: RouteConstants.studentDashboard,
         builder: (context, state) => const StudentDashboardScreen(),
       ),
+      GoRoute(path: RouteConstants.studentComplaints, builder: (context, state) => const MyComplaintsScreen()),
+      GoRoute(path: RouteConstants.studentNewComplaint, builder: (context, state) => const SubmitComplaintScreen()),
+      GoRoute(path: RouteConstants.studentComplaintDetails, builder: (context, state) => ComplaintDetailsScreen(complaintId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0)),
+      GoRoute(path: RouteConstants.studentNotifications, builder: (context, state) => const StudentNotificationsScreen()),
 
       // Staff Dashboard
       GoRoute(
         path: RouteConstants.staffDashboard,
         builder: (context, state) => const StaffDashboardScreen(),
+      ),
+      GoRoute(
+        path: RouteConstants.staffComplaints,
+        builder: (context, state) => const StaffAssignmentsScreen(),
+      ),
+      GoRoute(
+        path: RouteConstants.staffComplaintDetails,
+        builder: (context, state) => StaffComplaintDetailsScreen(
+          complaintId:
+              int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+        ),
+      ),
+      GoRoute(
+        path: RouteConstants.staffNotifications,
+        builder: (context, state) => const StaffNotificationsScreen(),
+      ),
+      GoRoute(
+        path: RouteConstants.adminDashboard,
+        builder: (context, state) => const AdminMobileLandingScreen(),
+      ),
+      GoRoute(
+        path: RouteConstants.unsupportedRole,
+        builder: (context, state) => const PlaceholderScreen(
+          title: 'Unsupported Account Role',
+          message:
+              'This account role does not have access to the mobile application.',
+          targetPhase: 'Contact CampusFix administration',
+          icon: Icons.no_accounts_outlined,
+        ),
       ),
 
       // Fallback Placeholder
@@ -141,6 +147,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       icon: Icons.error_outline_rounded,
     ),
   );
+  ref.onDispose(() {
+    router.dispose();
+    notifier.dispose();
+  });
+  return router;
 });
 
 /// Centralized GoRouter routing configuration reference for CampusFix.
@@ -155,9 +166,62 @@ class AppRouter {
     switch (role.toUpperCase()) {
       case AppConstants.roleStaff:
         return RouteConstants.staffDashboard;
+      case AppConstants.roleAdmin:
+        return RouteConstants.adminDashboard;
       case AppConstants.roleStudent:
-      default:
         return RouteConstants.studentDashboard;
+      default:
+        return RouteConstants.unsupportedRole;
+    }
+  }
+
+  /// Redirects protected, authentication, and role-specific routes safely.
+  static String? redirectForAccess({
+    required bool isAuthenticated,
+    required String? role,
+    required String path,
+  }) {
+    final isAuthRoute = {
+      RouteConstants.welcome,
+      RouteConstants.login,
+      RouteConstants.register,
+      RouteConstants.forgotPassword,
+      RouteConstants.resetPassword,
+    }.contains(path);
+
+    if (!isAuthenticated) {
+      return isAuthRoute ? null : RouteConstants.welcome;
+    }
+    if (isAuthRoute) {
+      return resolveRoleDestination(role ?? '');
+    }
+    return roleGuardRedirect(role ?? '', path);
+  }
+
+  /// Returns a safe landing route when [path] is outside [role]'s portal.
+  static String? roleGuardRedirect(String role, String path) {
+    final normalizedRole = role.toUpperCase();
+    final isStudentRoute = path.startsWith('/student');
+    final isStaffRoute = path.startsWith('/staff');
+    final isAdminRoute = path.startsWith('/admin');
+
+    switch (normalizedRole) {
+      case AppConstants.roleStudent:
+        return isStaffRoute || isAdminRoute
+            ? RouteConstants.studentDashboard
+            : null;
+      case AppConstants.roleStaff:
+        return isStudentRoute || isAdminRoute
+            ? RouteConstants.staffDashboard
+            : null;
+      case AppConstants.roleAdmin:
+        return isStudentRoute || isStaffRoute
+            ? RouteConstants.adminDashboard
+            : null;
+      default:
+        return path == RouteConstants.unsupportedRole
+            ? null
+            : RouteConstants.unsupportedRole;
     }
   }
 }

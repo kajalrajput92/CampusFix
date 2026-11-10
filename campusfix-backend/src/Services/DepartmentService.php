@@ -117,4 +117,10 @@ class DepartmentService
 
         return $this->getDepartmentDetails($departmentId);
     }
+
+    public function deleteDepartment(int $departmentId): void
+    {
+        if ($departmentId <= 0) throw new InvalidArgumentException('Valid department ID is required.');
+        if (!$this->departmentModel->deleteIfUnused($departmentId)) throw new InvalidArgumentException('Department not found.');
+    }
 }

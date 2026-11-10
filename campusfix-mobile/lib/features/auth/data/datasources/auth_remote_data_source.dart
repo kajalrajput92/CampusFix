@@ -87,6 +87,11 @@ class AuthRemoteDataSource {
     );
   }
 
+  /// POST /api/auth/logout revokes the current bearer token.
+  Future<void> logout() async {
+    await _apiClient.post(ApiEndpoints.logout);
+  }
+
   /// POST /api/auth/forgot-password
   Future<String> forgotPassword({required String email}) async {
     final response = await _apiClient.post(

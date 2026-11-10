@@ -75,8 +75,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isStaff = widget.targetRole.toUpperCase() == AppConstants.roleStaff;
-    final roleLabel = isStaff ? 'Staff Member' : 'Student';
+    final targetRole = widget.targetRole.toUpperCase();
+    final isStaff = targetRole == AppConstants.roleStaff;
+    final isStudent = targetRole == AppConstants.roleStudent;
+    final isAdmin = targetRole == AppConstants.roleAdmin;
+    final roleLabel = isStaff
+        ? 'Staff Member'
+        : isAdmin
+        ? 'Administrator'
+        : 'Student';
+    final portalLabel = isStaff
+        ? 'STAFF PORTAL'
+        : isAdmin
+        ? 'ADMIN PORTAL'
+        : 'STUDENT PORTAL';
     final authState = ref.watch(authNotifierProvider);
 
     return Scaffold(
@@ -119,7 +131,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      isStaff ? 'STAFF PORTAL' : 'STUDENT PORTAL',
+                      portalLabel,
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -286,7 +298,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 24),
 
                 // Student Registration Link (Only for Student Portal)
-                if (!isStaff) ...[
+                if (isStudent) ...[
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -316,28 +328,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ],
 
                 // Role switch recommendation
-                Center(
-                  child: TextButton(
-                    onPressed: () {
-                      ref.read(authNotifierProvider.notifier).clearError();
-                      final otherRole = isStaff
-                          ? AppConstants.roleStudent
-                          : AppConstants.roleStaff;
-                      context.pushReplacement(
-                        '${RouteConstants.login}?role=$otherRole',
-                      );
-                    },
-                    child: Text(
-                      isStaff
-                          ? 'Switch to Student Portal'
-                          : 'Switch to Staff Portal',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textMuted,
+                if (isStudent || isStaff)
+                  Center(
+                    child: TextButton(
+                      onPressed: () {
+                        ref.read(authNotifierProvider.notifier).clearError();
+                        final otherRole = isStaff
+                            ? AppConstants.roleStudent
+                            : AppConstants.roleStaff;
+                        context.pushReplacement(
+                          '${RouteConstants.login}?role=$otherRole',
+                        );
+                      },
+                      child: Text(
+                        isStaff
+                            ? 'Switch to Student Portal'
+                            : 'Switch to Staff Portal',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textMuted,
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           ),

@@ -15,6 +15,7 @@ class ApiClient {
     String? baseUrl,
     SecureStorageService? storageService,
     void Function()? onSessionExpired,
+    HttpClientAdapter? httpClientAdapter,
   }) : _storageService = storageService ?? SecureStorageService() {
     dio = Dio(
       BaseOptions(
@@ -29,6 +30,9 @@ class ApiClient {
         responseType: ResponseType.json,
       ),
     );
+    if (httpClientAdapter != null) {
+      dio.httpClientAdapter = httpClientAdapter;
+    }
 
     authInterceptor = AuthInterceptor(
       _storageService,
