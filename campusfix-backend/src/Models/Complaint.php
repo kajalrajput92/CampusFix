@@ -415,7 +415,11 @@ class Complaint
                 'RESOLVED' => ['CLOSED'],
             ];
             if (!in_array($newStatus, $transitions[$oldStatus] ?? [], true)) throw new ConflictException('Invalid admin complaint status transition.');
-            $update = $this->db->prepare("UPDATE complaints SET status=:status,closed_at=CASE WHEN :status='CLOSED' THEN CURRENT_TIMESTAMP ELSE closed_at END WHERE complaint_id=:id");
+            if ($newStatus === 'CLOSED') {
+                $update = $this->db->prepare('UPDATE complaints SET status=:status, closed_at=CURRENT_TIMESTAMP WHERE complaint_id=:id');
+            } else {
+                $update = $this->db->prepare('UPDATE complaints SET status=:status WHERE complaint_id=:id');
+            }
             $update->execute(['status' => $newStatus, 'id' => $complaintId]);
             $history = $this->db->prepare('INSERT INTO complaint_status_history (complaint_id,changed_by,old_status,new_status,remarks) VALUES (:complaint_id,:admin_id,:old_status,:new_status,:remarks)');
             $history->execute(['complaint_id' => $complaintId, 'admin_id' => $adminId, 'old_status' => $oldStatus, 'new_status' => $newStatus, 'remarks' => $remarks]);
