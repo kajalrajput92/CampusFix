@@ -36,13 +36,12 @@ class StaffAssignment {
   }
 }
 
-String? nextStaffComplaintStatus(String currentStatus) => switch (
-  currentStatus.toUpperCase()
-) {
-  'ASSIGNED' => 'IN_PROGRESS',
-  'IN_PROGRESS' => 'RESOLVED',
-  _ => null,
-};
+String? nextStaffComplaintStatus(String currentStatus) =>
+    switch (currentStatus.toUpperCase()) {
+      'ASSIGNED' => 'IN_PROGRESS',
+      'IN_PROGRESS' => 'RESOLVED',
+      _ => null,
+    };
 
 String? validateStaffStatusUpdate(String status, String resolutionNotes) {
   if (status != 'IN_PROGRESS' && status != 'RESOLVED') {

@@ -23,7 +23,8 @@ class StaffComplaintRepository {
     }
     if (body is Map && body['success'] == false) {
       throw ApiException(
-        message: body['message']?.toString() ?? 'The server rejected the request.',
+        message:
+            body['message']?.toString() ?? 'The server rejected the request.',
       );
     }
     throw const ApiException(
@@ -41,36 +42,57 @@ class StaffComplaintRepository {
     }
     return value
         .map(
-          (item) => StaffAssignment.fromJson(
-            Map<String, dynamic>.from(item as Map),
-          ),
+          (item) =>
+              StaffAssignment.fromJson(Map<String, dynamic>.from(item as Map)),
         )
         .toList();
   }
 
   Future<ComplaintRecord> complaintDetails(int complaintId) async {
-    final payload = _data(await _api.get(
-      ApiEndpoints.staffComplaintDetails,
-      queryParameters: {'id': complaintId},
-    ));
-    if (payload is! Map) throw const ApiException(message: 'Invalid complaint detail response.');
+    final payload = _data(
+      await _api.get(
+        ApiEndpoints.staffComplaintDetails,
+        queryParameters: {'id': complaintId},
+      ),
+    );
+    if (payload is! Map)
+      throw const ApiException(message: 'Invalid complaint detail response.');
     final details = Map<String, dynamic>.from(payload);
     final complaintValue = details['complaint'];
-    if (complaintValue is! Map) throw const ApiException(message: 'Complaint details are missing.');
-    final complaint = ComplaintRecord.fromJson(Map<String, dynamic>.from(complaintValue));
-    List<T> parseList<T>(dynamic value, T Function(Map<String, dynamic>) parse) {
+    if (complaintValue is! Map)
+      throw const ApiException(message: 'Complaint details are missing.');
+    final complaint = ComplaintRecord.fromJson(
+      Map<String, dynamic>.from(complaintValue),
+    );
+    List<T> parseList<T>(
+      dynamic value,
+      T Function(Map<String, dynamic>) parse,
+    ) {
       if (value == null) return <T>[];
-      if (value is! List) throw const ApiException(message: 'Invalid complaint detail list.');
-      return value.map((item) => parse(Map<String, dynamic>.from(item as Map))).toList();
+      if (value is! List)
+        throw const ApiException(message: 'Invalid complaint detail list.');
+      return value
+          .map((item) => parse(Map<String, dynamic>.from(item as Map)))
+          .toList();
     }
+
     return ComplaintRecord(
-      id: complaint.id, number: complaint.number, title: complaint.title,
-      status: complaint.status, category: complaint.category, priority: complaint.priority,
-      createdAt: complaint.createdAt, description: complaint.description,
-      location: complaint.location, resolutionNotes: complaint.resolutionNotes,
+      id: complaint.id,
+      number: complaint.number,
+      title: complaint.title,
+      status: complaint.status,
+      category: complaint.category,
+      priority: complaint.priority,
+      createdAt: complaint.createdAt,
+      description: complaint.description,
+      location: complaint.location,
+      resolutionNotes: complaint.resolutionNotes,
       assignedAt: complaint.assignedAt,
       images: parseList(details['images'], ComplaintImage.fromJson),
-      history: parseList(details['status_history'], ComplaintStatusEvent.fromJson),
+      history: parseList(
+        details['status_history'],
+        ComplaintStatusEvent.fromJson,
+      ),
     );
   }
 

@@ -66,6 +66,11 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<void> clearLocalSession() async {
+    logoutCalled = true;
+  }
+
+  @override
   Future<String> forgotPassword({required String email}) async {
     return mockForgotMessage ?? 'Success';
   }

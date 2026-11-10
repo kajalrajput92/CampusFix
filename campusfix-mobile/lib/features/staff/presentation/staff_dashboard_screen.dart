@@ -24,8 +24,9 @@ class StaffDashboardScreen extends ConsumerWidget {
             tooltip: 'Notifications',
             onPressed: () => context.push('/staff/notifications'),
             icon: Badge(
-              isLabelVisible: (notifications.valueOrNull ?? const [])
-                  .any((item) => !item.isRead),
+              isLabelVisible: (notifications.valueOrNull ?? const []).any(
+                (item) => !item.isRead,
+              ),
               child: const Icon(Icons.notifications_outlined),
             ),
           ),
@@ -212,7 +213,8 @@ class StaffDashboardScreen extends ConsumerWidget {
                         loading: () => const LinearProgressIndicator(),
                         error: (error, _) => _DashboardError(
                           message: '$error',
-                          retry: () => ref.invalidate(staffNotificationsProvider),
+                          retry: () =>
+                              ref.invalidate(staffNotificationsProvider),
                         ),
                         data: (items) => TextButton.icon(
                           onPressed: () => context.push('/staff/notifications'),
@@ -237,7 +239,11 @@ class _CountCard extends StatelessWidget {
   final int count;
   final IconData icon;
 
-  const _CountCard({required this.label, required this.count, required this.icon});
+  const _CountCard({
+    required this.label,
+    required this.count,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) => AppCard(
