@@ -148,6 +148,18 @@ class WelcomeScreen extends StatelessWidget {
                         },
                       ),
 
+                      const SizedBox(height: 12),
+                      AppButton(
+                        label: 'Admin Portal',
+                        variant: AppButtonVariant.outlined,
+                        icon: Icons.admin_panel_settings_outlined,
+                        onPressed: () {
+                          context.push(
+                            '/auth/login?role=${AppConstants.roleAdmin}',
+                          );
+                        },
+                      ),
+
                       const SizedBox(height: 20),
 
                       // Footer

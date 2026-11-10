@@ -120,6 +120,17 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> logout() async {
+    try {
+      await remoteDataSource.logout();
+    } catch (_) {
+      // The local session must still be cleared if the network is unavailable.
+    } finally {
+      await storageService.clearAll();
+    }
+  }
+
+  @override
+  Future<void> clearLocalSession() async {
     await storageService.clearAll();
   }
 

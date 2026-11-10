@@ -10,6 +10,7 @@ import 'package:campusfix/features/auth/presentation/login_screen.dart';
 import 'package:campusfix/features/auth/presentation/providers/auth_provider.dart';
 import 'package:campusfix/features/auth/presentation/register_screen.dart';
 import 'package:campusfix/features/auth/presentation/reset_password_screen.dart';
+import 'package:campusfix/features/auth/presentation/welcome_screen.dart';
 import 'package:campusfix/shared/models/user_session.dart';
 
 import '../unit/auth_notifier_test.dart';
@@ -30,6 +31,19 @@ void main() {
       child: MaterialApp(theme: AppTheme.lightTheme, home: child),
     );
   }
+
+  group('WelcomeScreen role portals', () {
+    testWidgets('offers student, staff, and admin sign-in portals', (
+      tester,
+    ) async {
+      await tester.pumpWidget(createTestWidget(const WelcomeScreen()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Student Portal'), findsOneWidget);
+      expect(find.text('Staff Portal'), findsOneWidget);
+      expect(find.text('Admin Portal'), findsOneWidget);
+    });
+  });
 
   group('LoginScreen Widget Tests', () {
     testWidgets('renders Student Login elements properly', (tester) async {
@@ -58,6 +72,20 @@ void main() {
       expect(find.text('Staff Member Login'), findsOneWidget);
       expect(find.text('STAFF PORTAL'), findsOneWidget);
       expect(find.text('Register as Student'), findsNothing);
+    });
+
+    testWidgets('renders Admin Login without student-only links', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestWidget(const LoginScreen(targetRole: 'ADMIN')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Administrator Login'), findsOneWidget);
+      expect(find.text('ADMIN PORTAL'), findsOneWidget);
+      expect(find.text('Register as Student'), findsNothing);
+      expect(find.text('Switch to Staff Portal'), findsNothing);
     });
 
     testWidgets('displays validation messages on empty submit', (tester) async {

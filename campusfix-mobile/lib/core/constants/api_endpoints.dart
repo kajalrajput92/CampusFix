@@ -9,6 +9,7 @@ class ApiEndpoints {
   static const String login = '/auth/login';
   static const String register = '/auth/register';
   static const String me = '/auth/me';
+  static const String logout = '/auth/logout';
   static const String forgotPassword = '/auth/forgot-password';
   static const String resetPassword = '/auth/reset-password';
 
@@ -25,9 +26,11 @@ class ApiEndpoints {
   static const String complaints = '/complaints';
   static const String myComplaints = '/complaints/my';
   static const String complaintDetails = '/complaints/show';
+  static const String complaintImage = '/complaints/image';
 
   // Staff Complaint Assignments (Staff)
   static const String staffAssignments = '/staff/complaints/my';
+  static const String staffComplaintDetails = '/staff/complaints/show';
   static const String staffUpdateStatus = '/staff/complaints/status';
 
   // Feedback & Rating (Student)

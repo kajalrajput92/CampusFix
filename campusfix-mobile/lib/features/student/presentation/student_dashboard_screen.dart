@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_button.dart';
@@ -135,7 +136,7 @@ class StudentDashboardScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Phase 4 Live JWT Session established. Student issue reporting, active complaint timeline, camera attachment, and post-resolution ratings will activate in Phase 5.',
+                      'Report campus issues, track progress, and share feedback after resolution.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13.5,
@@ -144,6 +145,26 @@ class StudentDashboardScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 24),
+                    AppButton(
+                      label: 'My Complaints',
+                      icon: Icons.receipt_long_outlined,
+                      onPressed: () => context.push('/student/complaints'),
+                    ),
+                    const SizedBox(height: 10),
+                    AppButton(
+                      label: 'Submit a Complaint',
+                      icon: Icons.add_circle_outline,
+                      variant: AppButtonVariant.outlined,
+                      onPressed: () => context.push('/student/complaints/new'),
+                    ),
+                    const SizedBox(height: 10),
+                    AppButton(
+                      label: 'Notifications',
+                      icon: Icons.notifications_outlined,
+                      variant: AppButtonVariant.outlined,
+                      onPressed: () => context.push('/student/notifications'),
+                    ),
+                    const SizedBox(height: 10),
                     AppButton(
                       label: 'Sign Out',
                       variant: AppButtonVariant.outlined,
