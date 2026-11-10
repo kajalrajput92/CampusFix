@@ -33,7 +33,7 @@ void main() {
   }
 
   group('WelcomeScreen role portals', () {
-    testWidgets('offers student, staff, and admin sign-in portals', (
+    testWidgets('offers student and staff sign-in portals (admin is web-only)', (
       tester,
     ) async {
       await tester.pumpWidget(createTestWidget(const WelcomeScreen()));
@@ -41,7 +41,7 @@ void main() {
 
       expect(find.text('Student Portal'), findsOneWidget);
       expect(find.text('Staff Portal'), findsOneWidget);
-      expect(find.text('Admin Portal'), findsOneWidget);
+      expect(find.text('Admin Portal'), findsNothing);
     });
   });
 
