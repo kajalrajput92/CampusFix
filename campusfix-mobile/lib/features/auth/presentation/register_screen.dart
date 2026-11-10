@@ -245,7 +245,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             return 'Email address is required.';
                           }
                           final emailRegex = RegExp(
-                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,}$',
                           );
                           if (!emailRegex.hasMatch(value.trim())) {
                             return 'Please enter a valid email address.';
