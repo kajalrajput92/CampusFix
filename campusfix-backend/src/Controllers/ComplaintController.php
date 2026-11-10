@@ -190,4 +190,36 @@ class ComplaintController
             ];
         }
     }
+
+    /** Stream a stored complaint image only to a user authorized for the complaint. */
+    public function image(): array
+    {
+        try {
+            $user = AuthMiddleware::authenticate();
+            if (!in_array($user->role ?? '', ['ADMIN', 'STUDENT', 'STAFF'], true)) {
+                http_response_code(403);
+                return ['success' => false, 'message' => 'You do not have permission to access this image.'];
+            }
+            $id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
+            if ($id === false || $id === null || $id <= 0) {
+                http_response_code(422);
+                return ['success' => false, 'message' => 'Valid image ID is required.'];
+            }
+            $file = $this->complaintService->getAuthorizedImage($id, (string) $user->role, (int) $user->sub);
+            http_response_code(200);
+            header('Content-Type: ' . $file['mime']);
+            header('Content-Length: ' . (string) filesize($file['path']));
+            header('Content-Disposition: inline; filename="' . $file['name'] . '"');
+            header('Cache-Control: private, no-store');
+            header('X-Content-Type-Options: nosniff');
+            readfile($file['path']);
+            exit;
+        } catch (InvalidArgumentException $e) {
+            http_response_code(404);
+            return ['success' => false, 'message' => 'Image not found.'];
+        } catch (Throwable $e) {
+            if (http_response_code() < 400) http_response_code(500);
+            return ['success' => false, 'message' => http_response_code() === 401 ? 'Unauthorized.' : 'Unable to retrieve image.'];
+        }
+    }
 }

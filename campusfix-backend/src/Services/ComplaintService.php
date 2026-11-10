@@ -458,7 +458,48 @@ class ComplaintService
         return [
             'complaint' => $complaint,
             'images' => $images,
-            'status_history' => $history
+            'status_history' => $history,
+            'priority_history' => $this->complaintModel->getPriorityHistory($complaintId),
         ];
+    }
+
+    public function getStaffComplaintDetails(int $complaintId, int $staffId): array
+    {
+        $complaint = $this->complaintModel->findStaffDetailsByAssignment($complaintId, $staffId);
+        if (!$complaint) throw new InvalidArgumentException('Complaint not found in your current assignments.');
+        return [
+            'complaint' => $complaint,
+            'images' => $this->complaintModel->findImagesByComplaintId($complaintId),
+            'status_history' => $this->complaintModel->getStatusHistory($complaintId),
+        ];
+    }
+
+    public function getAuthorizedImage(int $imageId, string $role, int $userId): array
+    {
+        if ($imageId <= 0) throw new InvalidArgumentException('Valid image ID is required.');
+        $image = $this->complaintModel->findImageForViewer($imageId, $role, $userId);
+        if (!$image) throw new InvalidArgumentException('Image not found.');
+        $file = $this->imageUploadService->resolveStoredImage((string) $image['image_path']);
+        if (!$file) throw new InvalidArgumentException('Image not found.');
+        return $file;
+    }
+
+    public function updateAdminStatus(int $complaintId, int $adminId, string $status, ?string $remarks): array
+    {
+        $status = strtoupper(trim($status));
+        if (!in_array($status, ['UNDER_REVIEW', 'REJECTED', 'CLOSED'], true)) throw new InvalidArgumentException('Invalid admin complaint status.');
+        $remarks = $remarks === null ? null : trim($remarks);
+        if ($status === 'REJECTED' && ($remarks === null || $remarks === '')) throw new InvalidArgumentException('Remarks are required when rejecting a complaint.');
+        if ($remarks !== null && mb_strlen($remarks) > 2000) throw new InvalidArgumentException('Remarks must not exceed 2000 characters.');
+        if ($complaintId <= 0 || $adminId <= 0) throw new InvalidArgumentException('Invalid complaint or administrator ID.');
+        return $this->complaintModel->updateAdminStatus($complaintId, $adminId, $status, $remarks ?: null);
+    }
+
+    public function updateAdminPriority(int $complaintId, int $adminId, string $priority): array
+    {
+        $priority = strtoupper(trim($priority));
+        if (!in_array($priority, ['LOW', 'MEDIUM', 'HIGH', 'URGENT'], true)) throw new InvalidArgumentException('Invalid complaint priority.');
+        if ($complaintId <= 0 || $adminId <= 0) throw new InvalidArgumentException('Invalid complaint or administrator ID.');
+        return $this->complaintModel->updatePriority($complaintId, $adminId, $priority);
     }
 }

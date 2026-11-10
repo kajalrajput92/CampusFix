@@ -276,4 +276,36 @@ class DepartmentController
             ];
         }
     }
+
+    public function delete(): array
+    {
+        try {
+            AuthMiddleware::authorize(['ADMIN']);
+            $id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
+            if ($id === false || $id === null || $id <= 0) {
+                http_response_code(422);
+                return ['success' => false, 'message' => 'Valid department ID is required.'];
+            }
+            $this->departmentService->deleteDepartment($id);
+            return ['success' => true, 'message' => 'Department deleted successfully.', 'data' => ['department_id' => $id]];
+        } catch (\Campusfix\Backend\Services\ConflictException $e) {
+            http_response_code(409);
+            return ['success' => false, 'message' => $e->getMessage()];
+        } catch (PDOException $e) {
+            if ($e->getCode() === '23000') {
+                http_response_code(409);
+                return ['success' => false, 'message' => 'Department is still referenced and cannot be deleted.'];
+            }
+            error_log($e->getMessage());
+            http_response_code(500);
+            return ['success' => false, 'message' => 'Unable to delete department.'];
+        } catch (InvalidArgumentException $e) {
+            http_response_code(404);
+            return ['success' => false, 'message' => $e->getMessage()];
+        } catch (Throwable $e) {
+            error_log($e->getMessage());
+            http_response_code(500);
+            return ['success' => false, 'message' => 'Unable to delete department.'];
+        }
+    }
 }

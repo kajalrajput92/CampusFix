@@ -97,4 +97,11 @@ class AuthService
             ]
         ];
     }
+
+    public function logout(int $userId): void
+    {
+        if ($userId <= 0 || !$this->userModel->incrementTokenVersion($userId)) {
+            throw new RuntimeException('Unable to revoke authentication session.');
+        }
+    }
 }

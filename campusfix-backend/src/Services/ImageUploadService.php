@@ -171,6 +171,22 @@ class ImageUploadService
         }
     }
 
+    /** Resolve only paths created by this uploader; never serve a caller path. */
+    public function resolveStoredImage(string $storedPath): array|false
+    {
+        $filename = basename($storedPath);
+        if (!preg_match('/^[a-f0-9]{32}\.(jpg|png|webp)$/', $filename)) return false;
+        $root = realpath($this->uploadDirectory);
+        $file = realpath($this->uploadDirectory . DIRECTORY_SEPARATOR . $filename);
+        if ($root === false || $file === false || !is_file($file)) return false;
+        $prefix = rtrim($root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        if (!str_starts_with($file, $prefix)) return false;
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($file);
+        if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) return false;
+        return ['path' => $file, 'mime' => $mime, 'name' => $filename];
+    }
+
     /**
      * Normalize PHP single and multiple file upload structures.
      */

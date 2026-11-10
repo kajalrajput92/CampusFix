@@ -24,13 +24,13 @@ class Department
                 d.description,
                 d.created_at,
                 COUNT(DISTINCT c.complaint_id) AS total_complaints,
-                COUNT(DISTINCT u.user_id) AS total_staff
+                COUNT(DISTINCT CASE WHEN u.role = 'STAFF' THEN u.user_id END) AS total_staff,
+                COUNT(DISTINCT u.user_id) AS total_users
             FROM departments d
             LEFT JOIN complaints c
                 ON c.department_id = d.department_id
             LEFT JOIN users u
                 ON u.department_id = d.department_id
-                AND u.role = 'STAFF'
             GROUP BY d.department_id
             ORDER BY d.department_id DESC
         ";
@@ -51,13 +51,13 @@ class Department
                 d.description,
                 d.created_at,
                 COUNT(DISTINCT c.complaint_id) AS total_complaints,
-                COUNT(DISTINCT u.user_id) AS total_staff
+                COUNT(DISTINCT CASE WHEN u.role = 'STAFF' THEN u.user_id END) AS total_staff,
+                COUNT(DISTINCT u.user_id) AS total_users
             FROM departments d
             LEFT JOIN complaints c
                 ON c.department_id = d.department_id
             LEFT JOIN users u
                 ON u.department_id = d.department_id
-                AND u.role = 'STAFF'
             WHERE d.department_id = :department_id
             GROUP BY d.department_id
             LIMIT 1
@@ -114,5 +114,32 @@ class Department
         ]);
 
         return $stmt->rowCount() > 0;
+    }
+
+    public function deleteIfUnused(int $departmentId): bool
+    {
+        $this->db->beginTransaction();
+        try {
+            $lock = $this->db->prepare('SELECT department_id FROM departments WHERE department_id=:id FOR UPDATE');
+            $lock->execute(['id' => $departmentId]);
+            if (!$lock->fetchColumn()) {
+                $this->db->commit();
+                return false;
+            }
+            $users = $this->db->prepare('SELECT COUNT(*) FROM users WHERE department_id=:id');
+            $users->execute(['id' => $departmentId]);
+            $complaints = $this->db->prepare('SELECT COUNT(*) FROM complaints WHERE department_id=:id');
+            $complaints->execute(['id' => $departmentId]);
+            if ((int) $users->fetchColumn() > 0 || (int) $complaints->fetchColumn() > 0) {
+                throw new \Campusfix\Backend\Services\ConflictException('Department is referenced by users or complaints and cannot be deleted.');
+            }
+            $delete = $this->db->prepare('DELETE FROM departments WHERE department_id=:id');
+            $delete->execute(['id' => $departmentId]);
+            $this->db->commit();
+            return $delete->rowCount() === 1;
+        } catch (\Throwable $error) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            throw $error;
+        }
     }
 }

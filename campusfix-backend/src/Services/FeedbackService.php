@@ -156,6 +156,13 @@ class FeedbackService
             );
         }
 
+        $page = filter_var($filters['page'] ?? 1, FILTER_VALIDATE_INT);
+        $perPage = filter_var($filters['per_page'] ?? 10, FILTER_VALIDATE_INT);
+        if ($page === false || $page < 1) throw new InvalidArgumentException('Invalid page number.');
+        if ($perPage === false || $perPage < 1 || $perPage > 100) throw new InvalidArgumentException('Per page must be between 1 and 100.');
+        $filters['page'] = $page;
+        $filters['per_page'] = $perPage;
+
         return $this->feedbackModel->findAll($filters);
     }
 
