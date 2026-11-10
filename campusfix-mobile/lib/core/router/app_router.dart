@@ -90,10 +90,24 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: RouteConstants.studentDashboard,
         builder: (context, state) => const StudentDashboardScreen(),
       ),
-      GoRoute(path: RouteConstants.studentComplaints, builder: (context, state) => const MyComplaintsScreen()),
-      GoRoute(path: RouteConstants.studentNewComplaint, builder: (context, state) => const SubmitComplaintScreen()),
-      GoRoute(path: RouteConstants.studentComplaintDetails, builder: (context, state) => ComplaintDetailsScreen(complaintId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0)),
-      GoRoute(path: RouteConstants.studentNotifications, builder: (context, state) => const StudentNotificationsScreen()),
+      GoRoute(
+        path: RouteConstants.studentComplaints,
+        builder: (context, state) => const MyComplaintsScreen(),
+      ),
+      GoRoute(
+        path: RouteConstants.studentNewComplaint,
+        builder: (context, state) => const SubmitComplaintScreen(),
+      ),
+      GoRoute(
+        path: RouteConstants.studentComplaintDetails,
+        builder: (context, state) => ComplaintDetailsScreen(
+          complaintId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+        ),
+      ),
+      GoRoute(
+        path: RouteConstants.studentNotifications,
+        builder: (context, state) => const StudentNotificationsScreen(),
+      ),
 
       // Staff Dashboard
       GoRoute(
@@ -107,8 +121,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RouteConstants.staffComplaintDetails,
         builder: (context, state) => StaffComplaintDetailsScreen(
-          complaintId:
-              int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+          complaintId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
         ),
       ),
       GoRoute(
@@ -123,8 +136,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: RouteConstants.unsupportedRole,
         builder: (context, state) => const PlaceholderScreen(
           title: 'Unsupported Account Role',
-          message:
-              'This account role does not have access to the mobile application.',
+          message: 'This account role does not have access to the mobile application.',
           targetPhase: 'Contact CampusFix administration',
           icon: Icons.no_accounts_outlined,
         ),

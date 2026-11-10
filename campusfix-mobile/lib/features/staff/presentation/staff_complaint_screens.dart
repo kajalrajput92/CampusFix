@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_card.dart';
-import '../../auth/presentation/providers/auth_provider.dart';
 import '../../student/data/complaint_models.dart';
 import '../../student/data/student_complaint_repository.dart';
 import '../data/staff_complaint_models.dart';
@@ -19,9 +18,11 @@ final staffNotificationsProvider =
     FutureProvider.autoDispose<List<StudentNotification>>(
       (ref) => ref.watch(staffComplaintRepositoryProvider).notifications(),
     );
-final staffComplaintDetailsProvider = FutureProvider.autoDispose.family<ComplaintRecord, int>(
-  (ref, id) => ref.watch(staffComplaintRepositoryProvider).complaintDetails(id),
-);
+final staffComplaintDetailsProvider = FutureProvider.autoDispose
+    .family<ComplaintRecord, int>(
+      (ref, id) =>
+          ref.watch(staffComplaintRepositoryProvider).complaintDetails(id),
+    );
 
 String _staffDate(String value) {
   final parsed = DateTime.tryParse(value);
@@ -34,7 +35,10 @@ String _staffLabel(String value) => value
     .replaceAll('_', ' ')
     .toLowerCase()
     .split(' ')
-    .map((word) => word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1)}')
+    .map(
+      (word) =>
+          word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1)}',
+    )
     .join(' ');
 
 Color _staffStatusColor(String value) => switch (value.toUpperCase()) {
@@ -119,23 +123,23 @@ class _StaffComplaintDetailsScreenState
 
   Future<void> _update(int complaintId, String status) async {
     if (_updating) return;
-    final validation = validateStaffStatusUpdate(
-      status,
-      _resolutionNotes.text,
-    );
+    final validation = validateStaffStatusUpdate(status, _resolutionNotes.text);
     if (validation != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(validation)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(validation)));
       return;
     }
     setState(() => _updating = true);
     try {
-      await ref.read(staffComplaintRepositoryProvider).updateStatus(
-        complaintId: complaintId,
-        status: status,
-        resolutionNotes: status == 'RESOLVED' ? _resolutionNotes.text : null,
-      );
+      await ref
+          .read(staffComplaintRepositoryProvider)
+          .updateStatus(
+            complaintId: complaintId,
+            status: status,
+            resolutionNotes: status == 'RESOLVED'
+                ? _resolutionNotes.text
+                : null,
+          );
       ref.invalidate(staffAssignmentsProvider);
       ref.invalidate(staffComplaintDetailsProvider(complaintId));
       if (mounted) {
@@ -145,9 +149,8 @@ class _StaffComplaintDetailsScreenState
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$error')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$error')));
       }
     } finally {
       if (mounted) setState(() => _updating = false);
@@ -156,14 +159,18 @@ class _StaffComplaintDetailsScreenState
 
   @override
   Widget build(BuildContext context) {
-    final complaintState = ref.watch(staffComplaintDetailsProvider(widget.complaintId));
+    final complaintState = ref.watch(
+      staffComplaintDetailsProvider(widget.complaintId),
+    );
     return Scaffold(
       appBar: AppBar(
         title: const Text('Complaint Details'),
         actions: [
           IconButton(
             tooltip: 'Refresh',
-            onPressed: () => ref.invalidate(staffComplaintDetailsProvider(widget.complaintId)),
+            onPressed: () => ref.invalidate(
+              staffComplaintDetailsProvider(widget.complaintId),
+            ),
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -172,12 +179,15 @@ class _StaffComplaintDetailsScreenState
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => _StaffError(
           message: '$error',
-          retry: () => ref.invalidate(staffComplaintDetailsProvider(widget.complaintId)),
+          retry: () =>
+              ref.invalidate(staffComplaintDetailsProvider(widget.complaintId)),
         ),
         data: (complaint) {
           final nextStatus = nextStaffComplaintStatus(complaint.status);
           return RefreshIndicator(
-            onRefresh: () => ref.refresh(staffComplaintDetailsProvider(widget.complaintId).future),
+            onRefresh: () => ref.refresh(
+              staffComplaintDetailsProvider(widget.complaintId).future,
+            ),
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
@@ -209,7 +219,7 @@ class _StaffComplaintDetailsScreenState
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        complaint.description,
+                        complaint.description ?? '',
                         style: const TextStyle(height: 1.5),
                       ),
                       const Divider(height: 28),
@@ -224,22 +234,70 @@ class _StaffComplaintDetailsScreenState
                         value: _staffDate(complaint.assignedAt ?? ''),
                       ),
                       if (complaint.location?.isNotEmpty == true)
-                        _StaffInfo(label: 'Location', value: complaint.location!),
+                        _StaffInfo(
+                          label: 'Location',
+                          value: complaint.location!,
+                        ),
                       if (complaint.resolutionNotes?.isNotEmpty == true)
-                        _StaffInfo(label: 'Resolution notes', value: complaint.resolutionNotes!),
+                        _StaffInfo(
+                          label: 'Resolution notes',
+                          value: complaint.resolutionNotes!,
+                        ),
                     ],
                   ),
                 ),
                 if (complaint.images.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  const Text('Attachments', style: TextStyle(fontWeight: FontWeight.w700)),
+                  const Text(
+                    'Attachments',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
                   const SizedBox(height: 8),
-                  SizedBox(height: 130, child: ListView(scrollDirection: Axis.horizontal, children: complaint.images.map((image) => Padding(padding: const EdgeInsets.only(right: 10), child: _StaffPhoto(image: image))).toList())),
+                  SizedBox(
+                    height: 130,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: complaint.images
+                          .map(
+                            (image) => Padding(
+                              padding: const EdgeInsets.only(right: 10),
+                              child: _StaffPhoto(image: image),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
                 ],
                 if (complaint.history.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  const Text('Status history', style: TextStyle(fontWeight: FontWeight.w700)),
-                  AppCard(child: Column(children: complaint.history.map((event) => ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.circle, size: 11, color: _staffStatusColor(event.to)), title: Text(_staffLabel(event.to)), subtitle: Text([if (event.remarks.isNotEmpty) event.remarks, if (event.changedAt.isNotEmpty) _staffDate(event.changedAt)].join('\n')))).toList())),
+                  const Text(
+                    'Status history',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  AppCard(
+                    child: Column(
+                      children: complaint.history
+                          .map(
+                            (event) => ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: Icon(
+                                Icons.circle,
+                                size: 11,
+                                color: _staffStatusColor(event.to),
+                              ),
+                              title: Text(_staffLabel(event.to)),
+                              subtitle: Text(
+                                [
+                                  if (event.remarks.isNotEmpty) event.remarks,
+                                  if (event.changedAt.isNotEmpty)
+                                    _staffDate(event.changedAt),
+                                ].join('\n'),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
                 ],
                 if (nextStatus == 'IN_PROGRESS') ...[
                   const SizedBox(height: 16),
@@ -339,13 +397,14 @@ class StaffNotificationsScreen extends ConsumerWidget {
                             ref.invalidate(staffNotificationsProvider);
                           } catch (error) {
                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('$error')),
-                              );
+                              ScaffoldMessenger.of(
+                                context,
+                              ).showSnackBar(SnackBar(content: Text('$error')));
                             }
                           }
                         }
-                        if (notification.complaintId != null && context.mounted) {
+                        if (notification.complaintId != null &&
+                            context.mounted) {
                           context.push(
                             '/staff/complaints/${notification.complaintId}',
                           );
@@ -440,18 +499,30 @@ class _StaffPhoto extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (image.id <= 0) {
-      return const SizedBox(width: 170, child: Center(child: Text('Image unavailable')));
+      return const SizedBox(
+        width: 170,
+        child: Center(child: Text('Image unavailable')),
+      );
     }
     final state = ref.watch(complaintImageBytesProvider(image.id));
     return Container(
       width: 170,
       height: 120,
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(color: AppColors.surfaceSubtle, borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceSubtle,
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: state.when(
-        data: (bytes) => Image.memory(bytes, fit: BoxFit.cover, errorBuilder: (_, _, _) => const Center(child: Icon(Icons.broken_image_outlined))),
+        data: (bytes) => Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) =>
+              const Center(child: Icon(Icons.broken_image_outlined)),
+        ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => const Center(child: Icon(Icons.image_not_supported_outlined)),
+        error: (_, _) =>
+            const Center(child: Icon(Icons.image_not_supported_outlined)),
       ),
     );
   }

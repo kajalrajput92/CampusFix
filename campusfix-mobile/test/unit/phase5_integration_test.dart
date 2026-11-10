@@ -183,7 +183,10 @@ void main() {
       final adapter = _JsonAdapter([
         (
           status: 200,
-          body: {'success': true, 'data': {'new_status': 'RESOLVED'}},
+          body: {
+            'success': true,
+            'data': {'new_status': 'RESOLVED'},
+          },
         ),
       ]);
       final repository = StaffComplaintRepository(_client(adapter));
@@ -204,47 +207,53 @@ void main() {
       });
     });
 
-    test('staff notifications parse and mark read with query parameter', () async {
-      final adapter = _JsonAdapter([
-        (
-          status: 200,
-          body: {
-            'success': true,
-            'data': [
-              {
-                'notification_id': 3,
-                'complaint_id': 9,
-                'title': 'Assignment',
-                'message': 'A complaint was assigned.',
-                'created_at': '2026-11-10 07:30:00',
-                'is_read': 0,
-              },
-            ],
-          },
-        ),
-        (
-          status: 200,
-          body: {'success': true, 'data': {'notification_id': 3}},
-        ),
-      ]);
-      final repository = StaffComplaintRepository(_client(adapter));
+    test(
+      'staff notifications parse and mark read with query parameter',
+      () async {
+        final adapter = _JsonAdapter([
+          (
+            status: 200,
+            body: {
+              'success': true,
+              'data': [
+                {
+                  'notification_id': 3,
+                  'complaint_id': 9,
+                  'title': 'Assignment',
+                  'message': 'A complaint was assigned.',
+                  'created_at': '2026-11-10 07:30:00',
+                  'is_read': 0,
+                },
+              ],
+            },
+          ),
+          (
+            status: 200,
+            body: {
+              'success': true,
+              'data': {'notification_id': 3},
+            },
+          ),
+        ]);
+        final repository = StaffComplaintRepository(_client(adapter));
 
-      final notifications = await repository.notifications();
-      expect(notifications.single.isRead, isFalse);
-      await repository.markNotificationRead(3);
+        final notifications = await repository.notifications();
+        expect(notifications.single.isRead, isFalse);
+        await repository.markNotificationRead(3);
 
-      expect(adapter.lastRequest?.method, 'PATCH');
-      expect(adapter.lastRequest?.uri.path, '/api/notifications/read');
-      expect(adapter.lastRequest?.uri.queryParameters['notification_id'], '3');
-    });
+        expect(adapter.lastRequest?.method, 'PATCH');
+        expect(adapter.lastRequest?.uri.path, '/api/notifications/read');
+        expect(
+          adapter.lastRequest?.uri.queryParameters['notification_id'],
+          '3',
+        );
+      },
+    );
 
     test('401 triggers the shared session-expiry callback', () async {
       var expired = false;
       final adapter = _JsonAdapter([
-        (
-          status: 401,
-          body: {'success': false, 'message': 'Unauthorized.'},
-        ),
+        (status: 401, body: {'success': false, 'message': 'Unauthorized.'}),
       ]);
       final repository = StaffComplaintRepository(
         _client(adapter, onSessionExpired: () => expired = true),
@@ -252,7 +261,13 @@ void main() {
 
       await expectLater(
         repository.myAssignments(),
-        throwsA(isA<ApiException>().having((error) => error.statusCode, 'statusCode', 401)),
+        throwsA(
+          isA<ApiException>().having(
+            (error) => error.statusCode,
+            'statusCode',
+            401,
+          ),
+        ),
       );
       expect(expired, isTrue);
     });

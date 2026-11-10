@@ -40,7 +40,9 @@ class _JsonAdapter implements HttpClientAdapter {
     return ResponseBody.fromString(
       jsonEncode(body),
       200,
-      headers: {Headers.contentTypeHeader: [Headers.jsonContentType]},
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
     );
   }
 
@@ -49,50 +51,53 @@ class _JsonAdapter implements HttpClientAdapter {
 }
 
 void main() {
-  test('student feedback history parses and submission uses backend contract', () async {
-    final adapter = _JsonAdapter([
-      {
-        'success': true,
-        'data': [
-          {
-            'feedback_id': 21,
-            'complaint_id': 15,
-            'rating': 4,
-            'comments': 'Resolved well.',
-            'created_at': '2026-11-10 10:00:00',
-          },
-        ],
-      },
-      {
-        'success': true,
-        'data': {
-          'feedback_id': 22,
-          'complaint_id': 16,
-          'rating': 5,
-          'comments': 'Excellent.',
+  test(
+    'student feedback history parses and submission uses backend contract',
+    () async {
+      final adapter = _JsonAdapter([
+        {
+          'success': true,
+          'data': [
+            {
+              'feedback_id': 21,
+              'complaint_id': 15,
+              'rating': 4,
+              'comments': 'Resolved well.',
+              'created_at': '2026-11-10 10:00:00',
+            },
+          ],
         },
-      },
-    ]);
-    final client = ApiClient(
-      baseUrl: 'https://campusfix.test/api',
-      storageService: _TestStorage(),
-      httpClientAdapter: adapter,
-    );
-    final repository = StudentComplaintRepository(client);
+        {
+          'success': true,
+          'data': {
+            'feedback_id': 22,
+            'complaint_id': 16,
+            'rating': 5,
+            'comments': 'Excellent.',
+          },
+        },
+      ]);
+      final client = ApiClient(
+        baseUrl: 'https://campusfix.test/api',
+        storageService: _TestStorage(),
+        httpClientAdapter: adapter,
+      );
+      final repository = StudentComplaintRepository(client);
 
-    final history = await repository.myFeedback();
-    expect(history.single.complaintId, 15);
-    expect(history.single.rating, 4);
+      final history = await repository.myFeedback();
+      expect(history.single.complaintId, 15);
+      expect(history.single.rating, 4);
 
-    await repository.submitFeedback(16, 5, 'Excellent.');
-    expect(adapter.lastRequest?.method, 'POST');
-    expect(adapter.lastRequest?.uri.path, '/api/feedback');
-    expect(jsonDecode(adapter.requestBody!), {
-      'complaint_id': 16,
-      'rating': 5,
-      'comments': 'Excellent.',
-    });
-  });
+      await repository.submitFeedback(16, 5, 'Excellent.');
+      expect(adapter.lastRequest?.method, 'POST');
+      expect(adapter.lastRequest?.uri.path, '/api/feedback');
+      expect(jsonDecode(adapter.requestBody!), {
+        'complaint_id': 16,
+        'rating': 5,
+        'comments': 'Excellent.',
+      });
+    },
+  );
 
   test('department and location catalogs parse backend records', () async {
     final adapter = _JsonAdapter([

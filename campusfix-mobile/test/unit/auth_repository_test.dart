@@ -132,6 +132,9 @@ class FakeAuthRemoteDataSource implements AuthRemoteDataSource {
   }
 
   @override
+  Future<void> logout() async {}
+
+  @override
   Future<String> forgotPassword({required String email}) async {
     if (mockForgotPasswordException != null) {
       throw mockForgotPasswordException!;
