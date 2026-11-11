@@ -38,6 +38,25 @@ function App() {
     signOut();
   }, [session?.token, signOut]);
   useEffect(() => {
+    window.history.replaceState({
+      ...window.history.state,
+      campusfixPage: 'dashboard',
+      campusfixComplaintStatus: '',
+    }, '', window.location.href);
+
+    const restorePage = (event) => {
+      const nextPage = sections.some(([key]) => key === event.state?.campusfixPage)
+        ? event.state.campusfixPage
+        : 'dashboard';
+      setPage(nextPage);
+      setComplaintStatus(event.state?.campusfixComplaintStatus || '');
+      setMenuOpen(false);
+    };
+
+    window.addEventListener('popstate', restorePage);
+    return () => window.removeEventListener('popstate', restorePage);
+  }, []);
+  useEffect(() => {
     const handler = () => signOut();
     window.addEventListener('campusfix:unauthorized', handler);
     return () => window.removeEventListener('campusfix:unauthorized', handler);
@@ -63,6 +82,14 @@ function App() {
     setToast(message); toastTimer.current = window.setTimeout(() => setToast(''), 3500);
   }, []);
   const navigate = useCallback((nextPage, status = '') => {
+    const currentState = window.history.state || {};
+    if (currentState.campusfixPage !== nextPage || currentState.campusfixComplaintStatus !== status) {
+      window.history.pushState({
+        ...currentState,
+        campusfixPage: nextPage,
+        campusfixComplaintStatus: status,
+      }, '', window.location.href);
+    }
     setPage(nextPage);
     setComplaintStatus(status);
     setMenuOpen(false);
