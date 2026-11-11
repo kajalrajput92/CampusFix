@@ -438,6 +438,7 @@ function Profile({ token, notify, onPasswordChanged }) {
 
 function ProtectedImage({ imageId, token }) {
   const [source, setSource] = useState(''); const [error, setError] = useState('');
+  const [previewOpen, setPreviewOpen] = useState(false); const [zoom, setZoom] = useState(1);
   useEffect(() => {
     const controller = new AbortController(); let objectUrl = '';
     apiBinary('/complaints/image', { token, query: { id: imageId }, signal: controller.signal })
@@ -452,10 +453,26 @@ function ProtectedImage({ imageId, token }) {
     return () => { controller.abort(); if (objectUrl) URL.revokeObjectURL(objectUrl); };
   }, [imageId, token]);
   if (error) return <div className="image-fallback" role="status">Image unavailable</div>;
-  return source ? <img className="protected-image" src={source} alt="Complaint attachment" /> : <div className="image-fallback">Loading image…</div>;
+  return <>
+    {source ? <button className="protected-image-button" type="button" onClick={() => { setZoom(1); setPreviewOpen(true); }} aria-label="Open complaint photo and zoom">
+      <img className="protected-image" src={source} alt="Complaint attachment; click to enlarge" />
+      <span className="protected-image-hint">Click to enlarge</span>
+    </button> : <div className="image-fallback">Loading image…</div>}
+    {previewOpen && source && <Modal title="Complaint photo" className="image-preview-modal" close={() => setPreviewOpen(false)}>
+      <div className="image-preview-toolbar" aria-label="Photo zoom controls">
+        <button className="icon-button" type="button" aria-label="Zoom out" title="Zoom out" disabled={zoom <= 1} onClick={() => setZoom((current) => Math.max(1, current - 0.25))}>−</button>
+        <span>{Math.round(zoom * 100)}%</span>
+        <button className="icon-button" type="button" aria-label="Zoom in" title="Zoom in" disabled={zoom >= 4} onClick={() => setZoom((current) => Math.min(4, current + 0.25))}>+</button>
+        <button className="text-button" type="button" onClick={() => setZoom(1)}>Reset</button>
+      </div>
+      <div className="image-preview-stage">
+        <img className="image-preview-large" src={source} alt="Enlarged complaint attachment" style={zoom > 1 ? { width: `${zoom * 100}%`, maxWidth: 'none', maxHeight: 'none' } : undefined} />
+      </div>
+    </Modal>}
+  </>;
 }
 
-function Modal({ title, close, children }) { useEffect(() => { const handle = (event) => { if (event.key === 'Escape') close(); }; window.addEventListener('keydown', handle); return () => window.removeEventListener('keydown', handle); }, [close]); return <div className="modal-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}><section className="modal" role="dialog" aria-modal="true" aria-label={title}><div className="modal-head"><h2>{title}</h2><button className="icon-button" aria-label="Close dialog" onClick={close}><X size={19} /></button></div><div className="modal-body">{children}</div></section></div>; }
+function Modal({ title, close, children, className = '' }) { useEffect(() => { const handle = (event) => { if (event.key === 'Escape') close(); }; window.addEventListener('keydown', handle); return () => window.removeEventListener('keydown', handle); }, [close]); return <div className="modal-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}><section className={`modal ${className}`} role="dialog" aria-modal="true" aria-label={title}><div className="modal-head"><h2>{title}</h2><button className="icon-button" aria-label="Close dialog" onClick={close}><X size={19} /></button></div><div className="modal-body">{children}</div></section></div>; }
 function Pager({ page, pages, onPage }) { if (pages <= 1) return null; return <div className="pager"><span>Page {page} of {pages}</span><div><button className="icon-button" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label="Previous page"><ChevronLeft size={18} /></button><button className="icon-button" disabled={page >= pages} onClick={() => onPage(page + 1)} aria-label="Next page"><ChevronRight size={18} /></button></div></div>; }
 
 createRoot(document.getElementById('root')).render(<StrictMode><App /></StrictMode>);
