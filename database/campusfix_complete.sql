@@ -35,7 +35,7 @@ CREATE TABLE `complaint_assignments` (
   CONSTRAINT `fk_assignment_admin` FOREIGN KEY (`assigned_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
   CONSTRAINT `fk_assignment_complaint` FOREIGN KEY (`complaint_id`) REFERENCES `complaints` (`complaint_id`),
   CONSTRAINT `fk_assignment_staff` FOREIGN KEY (`staff_id`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -44,7 +44,7 @@ CREATE TABLE `complaint_assignments` (
 
 LOCK TABLES `complaint_assignments` WRITE;
 /*!40000 ALTER TABLE `complaint_assignments` DISABLE KEYS */;
-INSERT INTO `complaint_assignments` VALUES (1,1,3,2,'2026-11-04 13:51:23'),(2,9,3,2,'2026-11-05 08:19:29'),(3,10,3,2,'2026-11-10 18:23:19');
+INSERT INTO `complaint_assignments` VALUES (1,1,3,2,'2026-11-04 13:51:23'),(2,9,3,2,'2026-11-05 08:19:29'),(3,10,3,2,'2026-11-10 18:23:19'),(4,11,3,2,'2026-11-11 08:44:04');
 /*!40000 ALTER TABLE `complaint_assignments` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -95,7 +95,7 @@ CREATE TABLE `complaint_priority_history` (
   KEY `idx_priority_history_admin` (`changed_by`),
   CONSTRAINT `fk_priority_history_admin` FOREIGN KEY (`changed_by`) REFERENCES `users` (`user_id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_priority_history_complaint` FOREIGN KEY (`complaint_id`) REFERENCES `complaints` (`complaint_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -104,6 +104,7 @@ CREATE TABLE `complaint_priority_history` (
 
 LOCK TABLES `complaint_priority_history` WRITE;
 /*!40000 ALTER TABLE `complaint_priority_history` DISABLE KEYS */;
+INSERT INTO `complaint_priority_history` VALUES (1,11,2,'MEDIUM','HIGH','2026-11-11 08:43:03');
 /*!40000 ALTER TABLE `complaint_priority_history` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -127,7 +128,7 @@ CREATE TABLE `complaint_status_history` (
   KEY `fk_history_user` (`changed_by`),
   CONSTRAINT `fk_history_complaint` FOREIGN KEY (`complaint_id`) REFERENCES `complaints` (`complaint_id`) ON DELETE CASCADE,
   CONSTRAINT `fk_history_user` FOREIGN KEY (`changed_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -136,7 +137,7 @@ CREATE TABLE `complaint_status_history` (
 
 LOCK TABLES `complaint_status_history` WRITE;
 /*!40000 ALTER TABLE `complaint_status_history` DISABLE KEYS */;
-INSERT INTO `complaint_status_history` VALUES (1,1,1,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-04 13:11:48'),(2,1,2,'SUBMITTED','ASSIGNED','Complaint assigned to staff.','2026-11-04 13:51:23'),(3,1,3,'ASSIGNED','IN_PROGRESS',NULL,'2026-11-04 14:34:33'),(4,1,3,'IN_PROGRESS','RESOLVED','Water leakage issue fixed. The damaged pipe was repaired and the affected floor was cleaned.','2026-11-04 14:35:20'),(5,2,1,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-05 06:32:10'),(6,3,1,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-05 06:39:07'),(7,4,1,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-05 06:40:57'),(8,5,1,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-05 06:42:10'),(9,6,1,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-05 06:43:37'),(10,7,1,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-05 06:45:16'),(11,8,1,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-05 06:45:30'),(12,9,1,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-05 08:14:33'),(13,9,2,'SUBMITTED','ASSIGNED','Complaint assigned to staff.','2026-11-05 08:19:29'),(14,9,3,'ASSIGNED','IN_PROGRESS',NULL,'2026-11-05 08:25:53'),(15,9,3,'IN_PROGRESS','RESOLVED','Electrical wiring issue has been repaired and tested successfully.','2026-11-05 08:28:39'),(16,10,6,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-10 17:46:21'),(17,10,2,'SUBMITTED','UNDER_REVIEW','Admin reviewing issue','2026-11-10 18:22:12'),(18,10,2,'UNDER_REVIEW','ASSIGNED','Complaint assigned to staff.','2026-11-10 18:23:19'),(19,10,3,'ASSIGNED','IN_PROGRESS',NULL,'2026-11-10 18:23:32'),(20,10,3,'IN_PROGRESS','RESOLVED','done 👍','2026-11-10 18:23:42'),(21,11,6,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-11 08:20:29');
+INSERT INTO `complaint_status_history` VALUES (1,1,1,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-04 13:11:48'),(2,1,2,'SUBMITTED','ASSIGNED','Complaint assigned to staff.','2026-11-04 13:51:23'),(3,1,3,'ASSIGNED','IN_PROGRESS',NULL,'2026-11-04 14:34:33'),(4,1,3,'IN_PROGRESS','RESOLVED','Water leakage issue fixed. The damaged pipe was repaired and the affected floor was cleaned.','2026-11-04 14:35:20'),(5,2,1,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-05 06:32:10'),(6,3,1,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-05 06:39:07'),(7,4,1,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-05 06:40:57'),(8,5,1,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-05 06:42:10'),(9,6,1,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-05 06:43:37'),(10,7,1,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-05 06:45:16'),(11,8,1,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-05 06:45:30'),(12,9,1,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-05 08:14:33'),(13,9,2,'SUBMITTED','ASSIGNED','Complaint assigned to staff.','2026-11-05 08:19:29'),(14,9,3,'ASSIGNED','IN_PROGRESS',NULL,'2026-11-05 08:25:53'),(15,9,3,'IN_PROGRESS','RESOLVED','Electrical wiring issue has been repaired and tested successfully.','2026-11-05 08:28:39'),(16,10,6,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-10 17:46:21'),(17,10,2,'SUBMITTED','UNDER_REVIEW','Admin reviewing issue','2026-11-10 18:22:12'),(18,10,2,'UNDER_REVIEW','ASSIGNED','Complaint assigned to staff.','2026-11-10 18:23:19'),(19,10,3,'ASSIGNED','IN_PROGRESS',NULL,'2026-11-10 18:23:32'),(20,10,3,'IN_PROGRESS','RESOLVED','done 👍','2026-11-10 18:23:42'),(21,11,6,NULL,'SUBMITTED','Complaint submitted by student.','2026-11-11 08:20:29'),(22,11,2,'SUBMITTED','UNDER_REVIEW',NULL,'2026-11-11 08:42:54'),(23,11,2,'UNDER_REVIEW','ASSIGNED','Complaint assigned to staff.','2026-11-11 08:44:04'),(24,11,3,'ASSIGNED','IN_PROGRESS',NULL,'2026-11-11 08:44:25'),(25,11,3,'IN_PROGRESS','RESOLVED','work completed','2026-11-11 08:44:47'),(26,11,2,'RESOLVED','CLOSED',NULL,'2026-11-11 08:47:16');
 /*!40000 ALTER TABLE `complaint_status_history` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -183,7 +184,7 @@ CREATE TABLE `complaints` (
 
 LOCK TABLES `complaints` WRITE;
 /*!40000 ALTER TABLE `complaints` DISABLE KEYS */;
-INSERT INTO `complaints` VALUES (1,'CF-000001',1,1,NULL,'Water Leakage in Academic Block','There is continuous water leakage near room A-101 on the ground floor. The floor is getting wet and may cause accidents.','Plumbing','HIGH','RESOLVED','Water leakage issue fixed. The damaged pipe was repaired and the affected floor was cleaned.','2026-11-04 13:11:48','2026-11-04 14:35:20','2026-11-04 14:35:20',NULL,NULL),(2,'CF-000002',1,1,NULL,'Broken Water Tap','Water tap is leaking continuously.','plumbing','HIGH','SUBMITTED',NULL,'2026-11-05 06:32:10','2026-11-05 06:32:10',NULL,NULL,NULL),(3,'CF-000003',1,1,NULL,'Broken Water Tap','Water tap is leaking continuously.','plumbing','HIGH','SUBMITTED',NULL,'2026-11-05 06:39:07','2026-11-05 06:39:07',NULL,NULL,NULL),(4,'CF-000004',1,1,NULL,'Broken Water Tap','Water tap is leaking continuously.','plumbing','HIGH','SUBMITTED',NULL,'2026-11-05 06:40:57','2026-11-05 06:40:57',NULL,NULL,NULL),(5,'CF-000005',1,1,NULL,'Broken Water Tap','Water tap is leaking continuously.','plumbing','HIGH','SUBMITTED',NULL,'2026-11-05 06:42:10','2026-11-05 06:42:10',NULL,NULL,NULL),(6,'CF-000006',1,1,NULL,'Broken Water Tap','Water tap is leaking continuously.','plumbing','HIGH','SUBMITTED',NULL,'2026-11-05 06:43:37','2026-11-05 06:43:37',NULL,NULL,NULL),(7,'CF-000007',1,1,NULL,'Broken Water Tap','Water tap is leaking continuously.','plumbing','HIGH','SUBMITTED',NULL,'2026-11-05 06:45:16','2026-11-05 06:45:16',NULL,NULL,NULL),(8,'CF-000008',1,1,NULL,'Broken Water Tap','Water tap is leaking continuously.','plumbing','HIGH','SUBMITTED',NULL,'2026-11-05 06:45:30','2026-11-05 06:45:30',NULL,NULL,NULL),(9,'CF-000009',1,1,1,'Automatic Notification Test','Testing automatic notification after complaint submission.','Electrical','MEDIUM','RESOLVED','Electrical wiring issue has been repaired and tested successfully.','2026-11-05 08:14:33','2026-11-05 08:28:39','2026-11-05 08:28:39',NULL,NULL),(10,'CF-000010',6,1,1,'bulb','na','electronic','MEDIUM','RESOLVED','done 👍','2026-11-10 17:46:21','2026-11-10 18:23:42','2026-11-10 18:23:42',NULL,NULL),(11,'CF-000011',6,1,1,'board','white board','cleaning','MEDIUM','SUBMITTED',NULL,'2026-11-11 08:20:29','2026-11-11 08:20:29',NULL,NULL,NULL);
+INSERT INTO `complaints` VALUES (1,'CF-000001',1,1,NULL,'Water Leakage in Academic Block','There is continuous water leakage near room A-101 on the ground floor. The floor is getting wet and may cause accidents.','Plumbing','HIGH','RESOLVED','Water leakage issue fixed. The damaged pipe was repaired and the affected floor was cleaned.','2026-11-04 13:11:48','2026-11-04 14:35:20','2026-11-04 14:35:20',NULL,NULL),(2,'CF-000002',1,1,NULL,'Broken Water Tap','Water tap is leaking continuously.','plumbing','HIGH','SUBMITTED',NULL,'2026-11-05 06:32:10','2026-11-05 06:32:10',NULL,NULL,NULL),(3,'CF-000003',1,1,NULL,'Broken Water Tap','Water tap is leaking continuously.','plumbing','HIGH','SUBMITTED',NULL,'2026-11-05 06:39:07','2026-11-05 06:39:07',NULL,NULL,NULL),(4,'CF-000004',1,1,NULL,'Broken Water Tap','Water tap is leaking continuously.','plumbing','HIGH','SUBMITTED',NULL,'2026-11-05 06:40:57','2026-11-05 06:40:57',NULL,NULL,NULL),(5,'CF-000005',1,1,NULL,'Broken Water Tap','Water tap is leaking continuously.','plumbing','HIGH','SUBMITTED',NULL,'2026-11-05 06:42:10','2026-11-05 06:42:10',NULL,NULL,NULL),(6,'CF-000006',1,1,NULL,'Broken Water Tap','Water tap is leaking continuously.','plumbing','HIGH','SUBMITTED',NULL,'2026-11-05 06:43:37','2026-11-05 06:43:37',NULL,NULL,NULL),(7,'CF-000007',1,1,NULL,'Broken Water Tap','Water tap is leaking continuously.','plumbing','HIGH','SUBMITTED',NULL,'2026-11-05 06:45:16','2026-11-05 06:45:16',NULL,NULL,NULL),(8,'CF-000008',1,1,NULL,'Broken Water Tap','Water tap is leaking continuously.','plumbing','HIGH','SUBMITTED',NULL,'2026-11-05 06:45:30','2026-11-05 06:45:30',NULL,NULL,NULL),(9,'CF-000009',1,1,1,'Automatic Notification Test','Testing automatic notification after complaint submission.','Electrical','MEDIUM','RESOLVED','Electrical wiring issue has been repaired and tested successfully.','2026-11-05 08:14:33','2026-11-05 08:28:39','2026-11-05 08:28:39',NULL,NULL),(10,'CF-000010',6,1,1,'bulb','na','electronic','MEDIUM','RESOLVED','done 👍','2026-11-10 17:46:21','2026-11-10 18:23:42','2026-11-10 18:23:42',NULL,NULL),(11,'CF-000011',6,1,1,'board','white board','cleaning','HIGH','CLOSED','work completed','2026-11-11 08:20:29','2026-11-11 08:47:16','2026-11-11 08:44:47','2026-11-11 08:47:16',NULL);
 /*!40000 ALTER TABLE `complaints` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -298,7 +299,7 @@ CREATE TABLE `notifications` (
   KEY `idx_notifications_complaint` (`complaint_id`),
   CONSTRAINT `fk_notifications_complaint` FOREIGN KEY (`complaint_id`) REFERENCES `complaints` (`complaint_id`) ON DELETE SET NULL,
   CONSTRAINT `fk_notifications_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -307,7 +308,7 @@ CREATE TABLE `notifications` (
 
 LOCK TABLES `notifications` WRITE;
 /*!40000 ALTER TABLE `notifications` DISABLE KEYS */;
-INSERT INTO `notifications` VALUES (1,1,1,'COMPLAINT_UPDATE','Complaint Update','Your complaint CF-000001 has been updated.',1,'2026-11-05 07:50:48','2026-11-05 07:54:10'),(3,1,9,'COMPLAINT_SUBMITTED','Complaint Submitted','Your complaint CF-000009 has been submitted successfully.',0,'2026-11-05 08:14:33',NULL),(4,1,9,'COMPLAINT_ASSIGNED','Complaint Assigned','Your complaint CF-000009 has been assigned to a staff member.',0,'2026-11-05 08:19:29',NULL),(5,3,9,'NEW_ASSIGNMENT','New Complaint Assigned','Complaint CF-000009 - Automatic Notification Test has been assigned to you.',1,'2026-11-05 08:19:29','2026-11-10 18:15:16'),(6,1,9,'COMPLAINT_IN_PROGRESS','Complaint Work Started','Work has started on your complaint CF-000009.',0,'2026-11-05 08:25:53',NULL),(8,6,10,'COMPLAINT_SUBMITTED','Complaint Submitted','Your complaint CF-000010 has been submitted successfully.',1,'2026-11-10 17:46:21','2026-11-10 17:47:16'),(9,6,10,'COMPLAINT_ASSIGNED','Complaint Assigned','Your complaint CF-000010 has been assigned to a staff member.',0,'2026-11-10 18:23:19',NULL),(10,3,10,'NEW_ASSIGNMENT','New Complaint Assigned','Complaint CF-000010 - bulb has been assigned to you.',1,'2026-11-10 18:23:19','2026-11-10 18:23:29'),(11,6,10,'COMPLAINT_IN_PROGRESS','Complaint Work Started','Work has started on your complaint CF-000010.',0,'2026-11-10 18:23:32',NULL),(12,6,10,'COMPLAINT_RESOLVED','Complaint Resolved','Your complaint CF-000010 has been resolved successfully.',0,'2026-11-10 18:23:42',NULL),(13,6,11,'COMPLAINT_SUBMITTED','Complaint Submitted','Your complaint CF-000011 has been submitted successfully.',0,'2026-11-11 08:20:29',NULL);
+INSERT INTO `notifications` VALUES (1,1,1,'COMPLAINT_UPDATE','Complaint Update','Your complaint CF-000001 has been updated.',1,'2026-11-05 07:50:48','2026-11-05 07:54:10'),(3,1,9,'COMPLAINT_SUBMITTED','Complaint Submitted','Your complaint CF-000009 has been submitted successfully.',0,'2026-11-05 08:14:33',NULL),(4,1,9,'COMPLAINT_ASSIGNED','Complaint Assigned','Your complaint CF-000009 has been assigned to a staff member.',0,'2026-11-05 08:19:29',NULL),(5,3,9,'NEW_ASSIGNMENT','New Complaint Assigned','Complaint CF-000009 - Automatic Notification Test has been assigned to you.',1,'2026-11-05 08:19:29','2026-11-10 18:15:16'),(6,1,9,'COMPLAINT_IN_PROGRESS','Complaint Work Started','Work has started on your complaint CF-000009.',0,'2026-11-05 08:25:53',NULL),(8,6,10,'COMPLAINT_SUBMITTED','Complaint Submitted','Your complaint CF-000010 has been submitted successfully.',1,'2026-11-10 17:46:21','2026-11-10 17:47:16'),(9,6,10,'COMPLAINT_ASSIGNED','Complaint Assigned','Your complaint CF-000010 has been assigned to a staff member.',0,'2026-11-10 18:23:19',NULL),(10,3,10,'NEW_ASSIGNMENT','New Complaint Assigned','Complaint CF-000010 - bulb has been assigned to you.',1,'2026-11-10 18:23:19','2026-11-10 18:23:29'),(11,6,10,'COMPLAINT_IN_PROGRESS','Complaint Work Started','Work has started on your complaint CF-000010.',0,'2026-11-10 18:23:32',NULL),(12,6,10,'COMPLAINT_RESOLVED','Complaint Resolved','Your complaint CF-000010 has been resolved successfully.',0,'2026-11-10 18:23:42',NULL),(13,6,11,'COMPLAINT_SUBMITTED','Complaint Submitted','Your complaint CF-000011 has been submitted successfully.',1,'2026-11-11 08:20:29','2026-11-11 08:30:27'),(14,6,11,'COMPLAINT_ASSIGNED','Complaint Assigned','Your complaint CF-000011 has been assigned to a staff member.',0,'2026-11-11 08:44:04',NULL),(15,3,11,'NEW_ASSIGNMENT','New Complaint Assigned','Complaint CF-000011 - board has been assigned to you.',1,'2026-11-11 08:44:04','2026-11-11 08:44:21'),(16,6,11,'COMPLAINT_IN_PROGRESS','Complaint Work Started','Work has started on your complaint CF-000011.',0,'2026-11-11 08:44:25',NULL),(17,6,11,'COMPLAINT_RESOLVED','Complaint Resolved','Your complaint CF-000011 has been resolved successfully.',0,'2026-11-11 08:44:47',NULL),(18,2,11,'NEW_COMPLAINT','New Complaint Submitted','Complaint CF-000011 (board) was submitted by student.',1,'2026-11-11 09:17:29','2026-11-11 09:17:51'),(19,2,10,'COMPLAINT_RESOLVED','Complaint Resolved','Complaint CF-000010 (bulb) has been marked as RESOLVED.',0,'2026-11-11 08:17:29',NULL),(20,2,9,'COMPLAINT_RESOLVED','Complaint Resolved','Complaint CF-000009 (Automatic Notification Test) has been marked as RESOLVED.',1,'2026-11-10 09:17:29',NULL),(21,2,1,'SYSTEM','CampusFix System Alert','Welcome to CampusFix Admin Console. All system services are active.',1,'2026-11-09 09:17:29',NULL);
 /*!40000 ALTER TABLE `notifications` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -379,7 +380,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,NULL,'Test Student Updated','bossdkthe51@gmail.com','$2y$10$PwN5CBxtaO0ZJmgub4jGzO.Ixs43YUmrex8uDLen5jRZGO9yUa4ki','9876543210','STUDENT',NULL,NULL,1,'2026-11-04 12:13:41','2026-11-05 10:57:25',2),(2,NULL,'CampusFix Admin','admin@campusfix.com','$2y$10$Tc0nbe/S5yJ6cyTH19jiuug8RERBdBsfUQf.0cytz6mdhKPaXNkEe',NULL,'ADMIN',NULL,'CF-ADMIN-001',1,'2026-11-04 13:46:43','2026-11-10 18:13:17',0),(3,NULL,'CampusFix Staff','staff@campusfix.com','$2y$10$.jUUAKVAL4lkUGO8EqYqBercnWHWWh7dHV.ev6d5azM5mmZ43KHv6',NULL,'STAFF',NULL,'CF-STAFF-001',1,'2026-11-04 13:46:43','2026-11-10 19:02:10',1),(6,NULL,'Divyanshu Singh Chauhan','divyanshusinghchauhan58@gmail.com','$2y$10$MuCv2yyG/qUL3VhUP8yobOAtk7rs5k4/a/W.4AzjzMbm95BGWHxoe',NULL,'STUDENT',NULL,NULL,1,'2026-11-10 17:43:40','2026-11-10 17:52:32',2);
+INSERT INTO `users` VALUES (1,NULL,'Test Student Updated','bossdkthe51@gmail.com','$2y$10$PwN5CBxtaO0ZJmgub4jGzO.Ixs43YUmrex8uDLen5jRZGO9yUa4ki','9876543210','STUDENT',NULL,NULL,1,'2026-11-04 12:13:41','2026-11-05 10:57:25',2),(2,NULL,'CampusFix Admin','admin@campusfix.com','$2y$10$Tc0nbe/S5yJ6cyTH19jiuug8RERBdBsfUQf.0cytz6mdhKPaXNkEe',NULL,'ADMIN',NULL,'CF-ADMIN-001',1,'2026-11-04 13:46:43','2026-11-11 09:18:04',5),(3,NULL,'CampusFix Staff','staff@campusfix.com','$2y$10$.jUUAKVAL4lkUGO8EqYqBercnWHWWh7dHV.ev6d5azM5mmZ43KHv6',NULL,'STAFF',NULL,'CF-STAFF-001',1,'2026-11-04 13:46:43','2026-11-10 19:02:10',1),(6,NULL,'Divyanshu Singh Chauhan','divyanshusinghchauhan58@gmail.com','$2y$10$MuCv2yyG/qUL3VhUP8yobOAtk7rs5k4/a/W.4AzjzMbm95BGWHxoe',NULL,'STUDENT',NULL,NULL,1,'2026-11-10 17:43:40','2026-11-11 08:41:20',3);
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -392,4 +393,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-11-11 14:00:16
+-- Dump completed on 2026-11-11 14:52:04

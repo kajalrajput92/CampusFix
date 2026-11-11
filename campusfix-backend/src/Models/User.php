@@ -381,4 +381,15 @@ public function getTokenVersion(int $userId): int|false
 
     return (int) $result['token_version'];
 }
+
+    /**
+     * Find all active admin user IDs.
+     *
+     * @return int[]
+     */
+    public function findAdminIds(): array
+    {
+        $stmt = $this->db->query("SELECT user_id FROM users WHERE role = 'ADMIN' AND is_active = 1");
+        return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    }
 }

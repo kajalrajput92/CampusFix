@@ -184,6 +184,18 @@ class ComplaintService
                     . ' has been submitted successfully.'
             ]);
 
+            // Notify all admins about the new complaint
+            $adminIds = (new \Campusfix\Backend\Models\User())->findAdminIds();
+            foreach ($adminIds as $adminId) {
+                $this->notificationService->createNotification([
+                    'user_id' => (int) $adminId,
+                    'complaint_id' => $complaintId,
+                    'type' => 'NEW_COMPLAINT',
+                    'title' => 'New Complaint Submitted',
+                    'message' => 'Complaint ' . $complaint['complaint_number'] . ' (' . ($complaint['title'] ?? 'Complaint') . ') submitted by student.'
+                ]);
+            }
+
         } catch (Throwable $e) {
             error_log(
                 'Complaint notification failed: ' . $e->getMessage()
@@ -326,6 +338,19 @@ class ComplaintService
                             . $complaint['complaint_number']
                             . '.'
                 ]);
+
+                if ($isResolved) {
+                    $adminIds = (new \Campusfix\Backend\Models\User())->findAdminIds();
+                    foreach ($adminIds as $adminId) {
+                        $this->notificationService->createNotification([
+                            'user_id' => (int) $adminId,
+                            'complaint_id' => $complaintId,
+                            'type' => 'COMPLAINT_RESOLVED',
+                            'title' => 'Complaint Resolved',
+                            'message' => 'Complaint ' . $complaint['complaint_number'] . ' was marked as RESOLVED by staff.'
+                        ]);
+                    }
+                }
             }
 
         } catch (Throwable $e) {

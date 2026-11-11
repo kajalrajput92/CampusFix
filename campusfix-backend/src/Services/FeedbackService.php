@@ -93,6 +93,23 @@ class FeedbackService
                 'comments' => $comments
             ]);
 
+            // Notify admins about the new feedback
+            try {
+                $adminIds = (new \Campusfix\Backend\Models\User())->findAdminIds();
+                $notificationService = new \Campusfix\Backend\Services\NotificationService();
+                foreach ($adminIds as $adminId) {
+                    $notificationService->createNotification([
+                        'user_id' => (int) $adminId,
+                        'complaint_id' => $complaintId,
+                        'type' => 'FEEDBACK_SUBMITTED',
+                        'title' => 'New Feedback Received',
+                        'message' => 'Student submitted a ' . $rating . '-star rating on complaint #' . $complaintId . '.'
+                    ]);
+                }
+            } catch (Throwable $e) {
+                error_log('Feedback admin notification failed: ' . $e->getMessage());
+            }
+
         } catch (PDOException $e) {
 
             if (
