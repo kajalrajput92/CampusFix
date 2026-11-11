@@ -1,5 +1,7 @@
 # CampusFix Admin Console
 
+[![Deploy with Vercel](https://vercel.com/button)](https://campus-fix.vercel.app/)
+
 React/Vite admin interface for the existing PHP API. Run `npm install`, then `npm run dev`. Configure `VITE_API_BASE_URL` to the API base URL ending in `/api`; for local development, the Vite proxy can forward `/api` requests using `VITE_API_PROXY_TARGET`. See `.env.example`.
 
 The console stores the bearer token in `sessionStorage` for tab-scoped session restoration, then verifies it through `GET /api/auth/me` before rendering protected pages. This browser storage remains readable by same-origin JavaScript; production deployment should serve the frontend/API from a trusted origin, use HTTPS, and apply a restrictive Content Security Policy. The app clears the session after HTTP 401. HTTP 403 is surfaced as a permission error and does not silently sign the user out. Login is shared with other roles, so the UI rejects any response whose `data.user.role` is not `ADMIN`, and confirms the role again with `/auth/me`.
