@@ -254,3 +254,4 @@ erDiagram
 > 1. AI-based image classification to auto-detect broken items and assign priority.
 > 2. WebSocket push notifications via Firebase Cloud Messaging (FCM).
 > 3. Native iOS release on Apple TestFlight using a macOS CI runner.
+
