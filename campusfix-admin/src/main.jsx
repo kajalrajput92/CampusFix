@@ -23,6 +23,7 @@ function App() {
   const [session, setSession] = useState(readSession);
   const [admin, setAdmin] = useState(null);
   const [page, setPage] = useState('dashboard');
+  const [complaintStatus, setComplaintStatus] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState('');
   const [authChecking, setAuthChecking] = useState(Boolean(readSession()?.token));
@@ -61,6 +62,11 @@ function App() {
     window.clearTimeout(toastTimer.current);
     setToast(message); toastTimer.current = window.setTimeout(() => setToast(''), 3500);
   }, []);
+  const navigate = useCallback((nextPage, status = '') => {
+    setPage(nextPage);
+    setComplaintStatus(status);
+    setMenuOpen(false);
+  }, []);
 
   if (!session?.token) return <Login onLogin={(token, user) => { saveSession(token); setAuthChecking(true); setSession({ token }); setAdmin(user); }} />;
   if (authChecking || !admin) return <div className="auth-wait"><span className="spinner" /> Verifying administrator session…</div>;
@@ -70,13 +76,13 @@ function App() {
     <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
       <div className="brand"><div className="brand-mark">CF</div><div><strong>CampusFix</strong><small>ADMIN CONSOLE</small></div><button className="icon-button mobile-close" onClick={() => setMenuOpen(false)} aria-label="Close navigation"><X size={18} /></button></div>
       <div className="nav-label">WORKSPACE</div>
-      <nav>{sections.map(([key, label, Icon]) => <button key={key} className={`nav-item ${page === key ? 'selected' : ''}`} onClick={() => { setPage(key); setMenuOpen(false); }}><Icon size={18} /><span>{label}</span>{key === 'notifications' && <span className="nav-dot" />}</button>)}</nav>
+      <nav>{sections.map(([key, label, Icon]) => <button key={key} className={`nav-item ${page === key ? 'selected' : ''}`} onClick={() => navigate(key)}><Icon size={18} /><span>{label}</span>{key === 'notifications' && <span className="nav-dot" />}</button>)}</nav>
       <div className="sidebar-bottom"><div className="secure-note"><ShieldCheck size={17} /><span>Administrator session<br /><b>Role verified by API</b></span></div><button className="nav-item logout" onClick={revokeAndSignOut}><LogOut size={18} /><span>Sign out</span></button></div>
     </aside>
     {menuOpen && <button className="scrim" onClick={() => setMenuOpen(false)} aria-label="Close menu" />}
     <main className="main-area">
       <header className="topbar"><button className="icon-button menu-toggle" onClick={() => setMenuOpen(true)} aria-label="Open navigation"><Menu size={20} /></button><div className="crumb">Admin <ChevronRight size={14} /> <span><ActiveIcon size={15} /> {sections.find(([key]) => key === page)?.[1]}</span></div><div className="top-user"><div className="avatar">{String(value(admin, 'email')).slice(0, 1).toUpperCase()}</div><div><b>{value(admin, 'full_name', 'email')}</b><small>Administrator</small></div><ChevronDown size={15} /></div></header>
-      <section className="content"><Page page={page} token={session.token} admin={admin} notify={notify} /></section>
+      <section className="content"><Page page={page} token={session.token} admin={admin} notify={notify} onNavigate={navigate} complaintStatus={complaintStatus} /></section>
     </main>
     {toast && <div className="toast" role="status"><AlertCircle size={17} />{toast}</div>}
   </div>;
@@ -100,10 +106,10 @@ function Login({ onLogin }) {
   return <div className="login-page"><div className="login-panel"><div className="brand login-brand"><div className="brand-mark">CF</div><div><strong>CampusFix</strong><small>ADMIN CONSOLE</small></div></div><div className="login-emblem"><ShieldCheck size={25} /></div><p className="eyebrow">CAMPUS OPERATIONS</p><h1>Welcome back</h1><p className="muted">Sign in with an authorized administrator account.</p><form onSubmit={submit} className="form-stack"><label>Email address<input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required /></label><label>Password<input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>{error && <div className="error-banner" role="alert"><AlertCircle size={17} />{error}</div>}<button className="primary-button full-width" disabled={busy}>{busy ? <><span className="spinner small" /> Signing in…</> : 'Sign in securely'}</button></form><small className="login-foot">Access is checked against the CampusFix API.</small></div><div className="login-decoration"><span className="orb orb-one" /><span className="orb orb-two" /><div className="decor-copy"><span>REPORT. RESOLVE. IMPROVE.</span><h2>A better campus<br />starts with listening.</h2><p>One place to coordinate the work that keeps campus moving.</p></div></div></div>;
 }
 
-function Page({ page, token, admin, notify }) {
+function Page({ page, token, admin, notify, onNavigate, complaintStatus }) {
   switch (page) {
-    case 'dashboard': return <Dashboard token={token} />;
-    case 'complaints': return <Complaints token={token} notify={notify} />;
+    case 'dashboard': return <Dashboard token={token} onNavigate={onNavigate} />;
+    case 'complaints': return <Complaints token={token} notify={notify} initialStatus={complaintStatus} />;
     case 'students': return <Students token={token} notify={notify} />;
     case 'staff': return <Staff token={token} notify={notify} />;
     case 'departments': return <Catalog token={token} kind="departments" notify={notify} />;
@@ -139,28 +145,28 @@ function Empty({ children = 'No records found.' }) { return <div className="empt
 function Pill({ children }) { return <span className={`pill ${String(children).toLowerCase().replaceAll('_', '-')}`}>{String(children || '—').replaceAll('_', ' ')}</span>; }
 function Table({ columns, rows, renderRow }) { return <div className="table-wrap"><table><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{rows.map(renderRow)}</tbody></table></div>; }
 
-function Dashboard({ token }) {
+function Dashboard({ token, onNavigate }) {
   const stats = useLoad(() => api('/admin/dashboard/stats', { token }).then(dataOf));
   const feedback = useLoad(() => api('/admin/feedback/stats', { token }).then(dataOf));
   return <><Heading title="Campus overview" description="A live view of reports and campus operations." />{stats.loading ? <Loading /> : stats.error ? <ErrorState message={stats.error} retry={stats.refresh} /> : <>
     <div className="stat-grid">{[
-      ['Total complaints', value(stats.data?.complaints, 'total_complaints'), ClipboardList, 'blue'],
-      ['Awaiting review', value(stats.data?.complaints, 'submitted'), Activity, 'amber'],
-      ['Assigned', value(stats.data?.complaints, 'assigned'), Users, 'violet'],
-      ['In progress', value(stats.data?.complaints, 'in_progress'), Activity, 'cyan'],
-      ['Resolved', value(stats.data?.complaints, 'resolved'), Check, 'green'],
-      ['Students', value(stats.data?.users, 'students'), Users, 'blue'],
-      ['Staff', value(stats.data?.users, 'staff'), Users, 'violet'],
-      ['Under review', value(stats.data?.complaints, 'under_review'), Search, 'amber'],
-    ].map(([label, count, Icon, color]) => <Card className="stat-card" key={label}><div className={`stat-icon ${color}`}><Icon size={18} /></div><span>{label}</span><strong>{count}</strong><small>Current totals</small></Card>)}</div>
+      ['Total complaints', value(stats.data?.complaints, 'total_complaints'), ClipboardList, 'blue', 'complaints', ''],
+      ['Awaiting review', value(stats.data?.complaints, 'submitted'), Activity, 'amber', 'complaints', 'SUBMITTED'],
+      ['Assigned', value(stats.data?.complaints, 'assigned'), Users, 'violet', 'complaints', 'ASSIGNED'],
+      ['In progress', value(stats.data?.complaints, 'in_progress'), Activity, 'cyan', 'complaints', 'IN_PROGRESS'],
+      ['Resolved', value(stats.data?.complaints, 'resolved'), Check, 'green', 'complaints', 'RESOLVED'],
+      ['Students', value(stats.data?.users, 'students'), Users, 'blue', 'students', ''],
+      ['Staff', value(stats.data?.users, 'staff'), Users, 'violet', 'staff', ''],
+      ['Under review', value(stats.data?.complaints, 'under_review'), Search, 'amber', 'complaints', 'UNDER_REVIEW'],
+    ].map(([label, count, Icon, color, target, status]) => <button type="button" className="card stat-card stat-card-button" key={label} onClick={() => onNavigate(target, status)} aria-label={`${label}: ${count}. Open ${target === 'complaints' ? 'complaints' : target}.`}><div className={`stat-icon ${color}`}><Icon size={18} /></div><span>{label}</span><strong>{count}</strong><small>Current totals</small></button>)}</div>
     <div className="overview-grid"><Card><div className="card-heading"><div><h2>Complaint status</h2><p>Distribution from the backend totals</p></div><span className="live-badge">LIVE DATA</span></div><div className="status-list">{statuses.map((status) => <div className="status-row" key={status}><span className="status-bullet" /><span>{status.replaceAll('_', ' ')}</span><b>{value(stats.data?.complaints, status.toLowerCase())}</b></div>)}</div></Card>
       <Card><div className="card-heading"><div><h2>Feedback snapshot</h2><p>Ratings submitted by students</p></div><MessageSquare size={18} className="subtle-icon" /></div>{feedback.loading ? <Loading /> : feedback.error ? <ErrorState message={feedback.error} retry={feedback.refresh} /> : <><div className="rating-large">{value(feedback.data, 'average_rating', 'average')}<span>/ 5</span></div><p className="muted">Average rating</p><div className="rating-meta"><div><strong>{value(feedback.data, 'total_feedback', 'total')}</strong><small>Total responses</small></div><div><strong>{value(feedback.data, 'five_star', 'five_star_count')}</strong><small>5-star ratings</small></div></div></>}</Card></div>
     <div className="notice-line"><AlertCircle size={16} />Recent complaints, department breakdowns, and activity feeds are not exposed by the current backend API.</div>
   </>}</>;
 }
 
-function Complaints({ token, notify }) {
-  const [filters, setFilters] = useState({ search: '', status: '', priority: '', category: '', page: 1 });
+function Complaints({ token, notify, initialStatus = '' }) {
+  const [filters, setFilters] = useState(() => ({ search: '', status: initialStatus, priority: '', category: '', page: 1 }));
   const [detail, setDetail] = useState(null); const [staff, setStaff] = useState([]); const [staffId, setStaffId] = useState(''); const [busy, setBusy] = useState(false);
   const [nextStatus, setNextStatus] = useState(''); const [nextPriority, setNextPriority] = useState(''); const [remarks, setRemarks] = useState('');
   const [searchText, setSearchText] = useState('');
