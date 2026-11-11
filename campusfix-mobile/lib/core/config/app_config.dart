@@ -3,10 +3,10 @@ class AppConfig {
   AppConfig._();
 
   /// Base API URL supplied via `--dart-define=API_BASE_URL=...`.
-  /// Defaults to host Wi-Fi LAN IP (192.168.1.8:8000/api) for physical devices.
+  /// Defaults to live production cloud backend on Render.
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://192.168.1.8:8000/api',
+    defaultValue: 'https://campusfix-backend-sdzj.onrender.com/api',
   );
 
   static const String appVersion = '1.0.0';

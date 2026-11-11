@@ -1,4 +1,7 @@
-const API_BASE = (import.meta.env?.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
+const API_BASE = (
+  import.meta.env?.VITE_API_BASE_URL ||
+  (import.meta.env?.PROD ? 'https://campusfix-backend-sdzj.onrender.com/api' : '/api')
+).replace(/\/$/, '');
 const TOKEN_KEY = 'campusfix_admin_session';
 
 export function readSession() {
