@@ -488,61 +488,76 @@ class _SubmitComplaintScreenState extends ConsumerState<SubmitComplaintScreen> {
                               : AppColors.border,
                         ),
                       ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Icon(
-                            _location != null
-                                ? Icons.verified_rounded
-                                : Icons.qr_code_scanner_rounded,
-                            color: _location != null
-                                ? AppColors.accentGreen
-                                : AppColors.primaryNavy,
-                            size: 24,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _location != null
-                                      ? 'Room Identified via QR'
-                                      : 'QR-Enabled Location Detection',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13,
-                                    color: _location != null
-                                        ? AppColors.accentGreen
-                                        : AppColors.textPrimary,
-                                  ),
-                                ),
-                                Text(
-                                  selectedLocation != null
-                                      ? selectedLocation.label
-                                      : 'Scan classroom QR code to auto-select room',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: _location != null
-                                        ? AppColors.textPrimary
-                                        : AppColors.textMuted,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                          OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
+                          Row(
+                            children: [
+                              Icon(
+                                _location != null
+                                    ? Icons.verified_rounded
+                                    : Icons.qr_code_scanner_rounded,
+                                color: _location != null
+                                    ? AppColors.accentGreen
+                                    : AppColors.primaryNavy,
+                                size: 22,
                               ),
-                              visualDensity: VisualDensity.compact,
-                            ),
-                            onPressed: () => _openQrDialog(items),
-                            icon: const Icon(Icons.qr_code_scanner, size: 16),
-                            label: Text(
-                              _location != null ? 'Rescan' : 'Scan QR',
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _location != null
+                                          ? 'Room Identified via QR'
+                                          : 'QR Location Detection',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
+                                        color: _location != null
+                                            ? AppColors.accentGreen
+                                            : AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    Text(
+                                      selectedLocation != null
+                                          ? selectedLocation.label
+                                          : 'Scan a classroom QR code to select its location',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: _location != null
+                                            ? AppColors.textPrimary
+                                            : AppColors.textMuted,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              onPressed: () => _openQrDialog(items),
+                              icon: const Icon(
+                                Icons.qr_code_scanner,
+                                size: 16,
+                              ),
+                              label: Text(
+                                _location != null ? 'Rescan' : 'Scan QR',
+                              ),
                             ),
                           ),
                         ],
