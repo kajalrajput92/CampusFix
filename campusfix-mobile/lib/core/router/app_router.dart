@@ -96,7 +96,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RouteConstants.studentNewComplaint,
-        builder: (context, state) => const SubmitComplaintScreen(),
+        builder: (context, state) => SubmitComplaintScreen(
+          initialLocationId: int.tryParse(
+            state.uri.queryParameters['location_id'] ?? '',
+          ),
+        ),
       ),
       GoRoute(
         path: RouteConstants.studentComplaintDetails,

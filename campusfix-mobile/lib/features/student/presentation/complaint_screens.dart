@@ -145,7 +145,8 @@ class MyComplaintsScreen extends ConsumerWidget {
 }
 
 class SubmitComplaintScreen extends ConsumerStatefulWidget {
-  const SubmitComplaintScreen({super.key});
+  final int? initialLocationId;
+  const SubmitComplaintScreen({super.key, this.initialLocationId});
   @override
   ConsumerState<SubmitComplaintScreen> createState() =>
       _SubmitComplaintScreenState();
@@ -159,6 +160,12 @@ class _SubmitComplaintScreenState extends ConsumerState<SubmitComplaintScreen> {
   int? _department, _location;
   List<XFile> _images = [];
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _location = widget.initialLocationId;
+  }
   @override
   void dispose() {
     _title.dispose();
@@ -203,6 +210,155 @@ class _SubmitComplaintScreenState extends ConsumerState<SubmitComplaintScreen> {
 
   void _message(String text) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+
+  void _openQrDialog(List<CatalogOption> options) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.qr_code_scanner_rounded, color: AppColors.primaryNavy),
+            SizedBox(width: 8),
+            Text('Scan / Enter Room QR', style: TextStyle(fontSize: 18)),
+          ],
+        ),
+        content: SizedBox(
+          width: 320,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Enter the code from the classroom QR card (e.g. CAMPUSFIX_LOC:2 or CF-002), or tap a campus room below:',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'e.g. CAMPUSFIX_LOC:1 or 1',
+                  prefixIcon: const Icon(Icons.qr_code, size: 20),
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.arrow_forward),
+                    onPressed: () {
+                      final input = controller.text.trim();
+                      if (input.isEmpty) return;
+                      _applyQrCode(input, options, ctx);
+                    },
+                  ),
+                ),
+                onSubmitted: (val) => _applyQrCode(val, options, ctx),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Verified Campus QR Locations:',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 180),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: options.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (_, index) {
+                    final item = options[index];
+                    return ListTile(
+                      dense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 0,
+                      ),
+                      leading: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryNavy.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'CF-${item.id.toString().padLeft(3, '0')}',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryNavy,
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        item.label,
+                        style: const TextStyle(fontSize: 13),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: const Icon(
+                        Icons.check_circle_outline,
+                        size: 18,
+                        color: AppColors.primaryNavy,
+                      ),
+                      onTap: () {
+                        setState(() => _location = item.id);
+                        Navigator.pop(ctx);
+                        _message('✓ Room location auto-detected: ${item.label}');
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _applyQrCode(String code, List<CatalogOption> options, BuildContext ctx) {
+    final raw = code.toUpperCase().trim();
+    int? matchedId;
+    if (raw.contains('CAMPUSFIX_LOC:')) {
+      matchedId = int.tryParse(raw.replaceAll('CAMPUSFIX_LOC:', '').trim());
+    } else if (raw.contains('CF-')) {
+      final digits = RegExp(r'\d+').firstMatch(raw)?.group(0);
+      if (digits != null) matchedId = int.tryParse(digits);
+    } else {
+      matchedId = int.tryParse(raw);
+    }
+
+    CatalogOption? matched;
+    if (matchedId != null) {
+      matched = options.cast<CatalogOption?>().firstWhere(
+        (opt) => opt?.id == matchedId,
+        orElse: () => null,
+      );
+    }
+    matched ??= options.cast<CatalogOption?>().firstWhere(
+      (opt) => (opt?.label.toLowerCase() ?? '').contains(code.toLowerCase()),
+      orElse: () => null,
+    );
+
+    if (matched != null) {
+      setState(() => _location = matched!.id);
+      Navigator.pop(ctx);
+      _message('✓ Location identified via QR: ${matched.label}');
+    } else {
+      _message('Invalid or unrecognized QR location code: "$code"');
+    }
+  }
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
     if (_location == null) {
@@ -308,23 +464,115 @@ class _SubmitComplaintScreenState extends ConsumerState<SubmitComplaintScreen> {
                 message: 'Locations unavailable: $e',
                 retry: () => ref.invalidate(locationsProvider),
               ),
-              data: (items) => DropdownButtonFormField<int>(
-                initialValue: _location,
-                decoration: const InputDecoration(
-                  labelText: 'Campus location *',
-                  border: OutlineInputBorder(),
-                ),
-                items: items
-                    .map(
-                      (x) => DropdownMenuItem(
-                        value: x.id,
-                        child: Text(x.label, overflow: TextOverflow.ellipsis),
+              data: (items) {
+                final selectedLocation = items
+                    .cast<CatalogOption?>()
+                    .firstWhere((x) => x?.id == _location, orElse: () => null);
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
                       ),
-                    )
-                    .toList(),
-                onChanged: (v) => setState(() => _location = v),
-                validator: (v) => v == null ? 'Select a location' : null,
-              ),
+                      decoration: BoxDecoration(
+                        color: _location != null
+                            ? AppColors.accentGreen.withValues(alpha: 0.08)
+                            : AppColors.primaryNavy.withValues(alpha: 0.04),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: _location != null
+                              ? AppColors.accentGreen.withValues(alpha: 0.4)
+                              : AppColors.border,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _location != null
+                                ? Icons.verified_rounded
+                                : Icons.qr_code_scanner_rounded,
+                            color: _location != null
+                                ? AppColors.accentGreen
+                                : AppColors.primaryNavy,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _location != null
+                                      ? 'Room Identified via QR'
+                                      : 'QR-Enabled Location Detection',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                    color: _location != null
+                                        ? AppColors.accentGreen
+                                        : AppColors.textPrimary,
+                                  ),
+                                ),
+                                Text(
+                                  selectedLocation != null
+                                      ? selectedLocation.label
+                                      : 'Scan classroom QR code to auto-select room',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: _location != null
+                                        ? AppColors.textPrimary
+                                        : AppColors.textMuted,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            onPressed: () => _openQrDialog(items),
+                            icon: const Icon(Icons.qr_code_scanner, size: 16),
+                            label: Text(
+                              _location != null ? 'Rescan' : 'Scan QR',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<int>(
+                      key: ValueKey(_location),
+                      initialValue: _location,
+                      decoration: const InputDecoration(
+                        labelText: 'Or select campus location manually *',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: items
+                          .map(
+                            (x) => DropdownMenuItem(
+                              value: x.id,
+                              child: Text(
+                                x.label,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) => setState(() => _location = v),
+                      validator: (v) => v == null ? 'Select a location' : null,
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 20),
             Row(
