@@ -24,6 +24,8 @@ function App() {
   const [admin, setAdmin] = useState(null);
   const [page, setPage] = useState('dashboard');
   const [complaintStatus, setComplaintStatus] = useState('');
+  const [targetComplaintId, setTargetComplaintId] = useState('');
+  const [unreadCount, setUnreadCount] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState('');
   const [authChecking, setAuthChecking] = useState(Boolean(readSession()?.token));
@@ -42,6 +44,7 @@ function App() {
       ...window.history.state,
       campusfixPage: 'dashboard',
       campusfixComplaintStatus: '',
+      campusfixComplaintId: '',
     }, '', window.location.href);
 
     const restorePage = (event) => {
@@ -50,6 +53,7 @@ function App() {
         : 'dashboard';
       setPage(nextPage);
       setComplaintStatus(event.state?.campusfixComplaintStatus || '');
+      setTargetComplaintId(event.state?.campusfixComplaintId || '');
       setMenuOpen(false);
     };
 
@@ -81,17 +85,27 @@ function App() {
     window.clearTimeout(toastTimer.current);
     setToast(message); toastTimer.current = window.setTimeout(() => setToast(''), 3500);
   }, []);
-  const navigate = useCallback((nextPage, status = '') => {
+  const refreshUnreadCount = useCallback(async () => {
+    if (!session?.token) { setUnreadCount(0); return; }
+    try {
+      const result = await api('/notifications/unread-count', { token: session.token });
+      setUnreadCount(Math.max(0, Number(dataOf(result)?.unread_count) || 0));
+    } catch { /* Keep the last known count if the request temporarily fails. */ }
+  }, [session?.token]);
+  useEffect(() => { refreshUnreadCount(); }, [refreshUnreadCount]);
+  const navigate = useCallback((nextPage, status = '', complaintId = '') => {
     const currentState = window.history.state || {};
-    if (currentState.campusfixPage !== nextPage || currentState.campusfixComplaintStatus !== status) {
+    if (currentState.campusfixPage !== nextPage || currentState.campusfixComplaintStatus !== status || currentState.campusfixComplaintId !== complaintId) {
       window.history.pushState({
         ...currentState,
         campusfixPage: nextPage,
         campusfixComplaintStatus: status,
+        campusfixComplaintId: complaintId,
       }, '', window.location.href);
     }
     setPage(nextPage);
     setComplaintStatus(status);
+    setTargetComplaintId(complaintId);
     setMenuOpen(false);
   }, []);
 
@@ -103,13 +117,13 @@ function App() {
     <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
       <div className="brand"><div className="brand-mark">CF</div><div><strong>CampusFix</strong><small>ADMIN CONSOLE</small></div><button className="icon-button mobile-close" onClick={() => setMenuOpen(false)} aria-label="Close navigation"><X size={18} /></button></div>
       <div className="nav-label">WORKSPACE</div>
-      <nav>{sections.map(([key, label, Icon]) => <button key={key} className={`nav-item ${page === key ? 'selected' : ''}`} onClick={() => navigate(key)}><Icon size={18} /><span>{label}</span>{key === 'notifications' && <span className="nav-dot" />}</button>)}</nav>
+      <nav>{sections.map(([key, label, Icon]) => <button key={key} className={`nav-item ${page === key ? 'selected' : ''}`} onClick={() => navigate(key)}><Icon size={18} /><span>{label}</span>{key === 'notifications' && unreadCount > 0 && <span className="nav-dot" />}</button>)}</nav>
       <div className="sidebar-bottom"><div className="secure-note"><ShieldCheck size={17} /><span>Administrator session<br /><b>Role verified by API</b></span></div><button className="nav-item logout" onClick={revokeAndSignOut}><LogOut size={18} /><span>Sign out</span></button></div>
     </aside>
     {menuOpen && <button className="scrim" onClick={() => setMenuOpen(false)} aria-label="Close menu" />}
     <main className="main-area">
       <header className="topbar"><button className="icon-button menu-toggle" onClick={() => setMenuOpen(true)} aria-label="Open navigation"><Menu size={20} /></button><div className="crumb">Admin <ChevronRight size={14} /> <span><ActiveIcon size={15} /> {sections.find(([key]) => key === page)?.[1]}</span></div><div className="top-user"><div className="avatar">{String(value(admin, 'email')).slice(0, 1).toUpperCase()}</div><div><b>{value(admin, 'full_name', 'email')}</b><small>Administrator</small></div><ChevronDown size={15} /></div></header>
-      <section className="content"><Page page={page} token={session.token} notify={notify} onNavigate={navigate} complaintStatus={complaintStatus} /></section>
+      <section className="content"><Page page={page} token={session.token} notify={notify} onNavigate={navigate} complaintStatus={complaintStatus} targetComplaintId={targetComplaintId} onUnreadChange={refreshUnreadCount} /></section>
     </main>
     {toast && <div className="toast" role="status"><AlertCircle size={17} />{toast}</div>}
   </div>;
@@ -133,16 +147,16 @@ function Login({ onLogin }) {
   return <div className="login-page"><div className="login-panel"><div className="brand login-brand"><div className="brand-mark">CF</div><div><strong>CampusFix</strong><small>ADMIN CONSOLE</small></div></div><div className="login-emblem"><ShieldCheck size={25} /></div><p className="eyebrow">CAMPUS OPERATIONS</p><h1>Welcome back</h1><p className="muted">Sign in with an authorized administrator account.</p><form onSubmit={submit} className="form-stack"><label>Email address<input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required /></label><label>Password<input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>{error && <div className="error-banner" role="alert"><AlertCircle size={17} />{error}</div>}<button className="primary-button full-width" disabled={busy}>{busy ? <><span className="spinner small" /> Signing in…</> : 'Sign in securely'}</button></form><small className="login-foot">Access is checked against the CampusFix API.</small></div><div className="login-decoration"><span className="orb orb-one" /><span className="orb orb-two" /><div className="decor-copy"><span>REPORT. RESOLVE. IMPROVE.</span><h2>A better campus<br />starts with listening.</h2><p>One place to coordinate the work that keeps campus moving.</p></div></div></div>;
 }
 
-function Page({ page, token, notify, onNavigate, complaintStatus }) {
+function Page({ page, token, notify, onNavigate, complaintStatus, targetComplaintId, onUnreadChange }) {
   switch (page) {
     case 'dashboard': return <Dashboard token={token} onNavigate={onNavigate} />;
-    case 'complaints': return <Complaints token={token} notify={notify} initialStatus={complaintStatus} />;
+    case 'complaints': return <Complaints token={token} notify={notify} initialStatus={complaintStatus} targetComplaintId={targetComplaintId} />;
     case 'students': return <Students token={token} notify={notify} />;
     case 'staff': return <Staff token={token} notify={notify} />;
     case 'departments': return <Catalog token={token} kind="departments" notify={notify} />;
     case 'locations': return <Catalog token={token} kind="locations" notify={notify} />;
     case 'feedback': return <Feedback token={token} />;
-    case 'notifications': return <Notifications token={token} notify={notify} />;
+    case 'notifications': return <Notifications token={token} notify={notify} onNavigate={onNavigate} onUnreadChange={onUnreadChange} />;
     case 'profile': return <Profile token={token} notify={notify} />;
     default: return <Dashboard token={token} />;
   }
@@ -192,7 +206,7 @@ function Dashboard({ token, onNavigate }) {
   </>}</>;
 }
 
-function Complaints({ token, notify, initialStatus = '' }) {
+function Complaints({ token, notify, initialStatus = '', targetComplaintId = '' }) {
   const [filters, setFilters] = useState(() => ({ search: '', status: initialStatus, priority: '', category: '', page: 1 }));
   const [detail, setDetail] = useState(null); const [staff, setStaff] = useState([]); const [staffId, setStaffId] = useState(''); const [busy, setBusy] = useState(false);
   const [nextStatus, setNextStatus] = useState(''); const [nextPriority, setNextPriority] = useState(''); const [remarks, setRemarks] = useState('');
@@ -200,12 +214,13 @@ function Complaints({ token, notify, initialStatus = '' }) {
   useEffect(() => { const id = window.setTimeout(() => setFilters((f) => ({ ...f, search: searchText, page: 1 })), 300); return () => clearTimeout(id); }, [searchText]);
   const query = useMemo(() => ({ ...filters, per_page: 10 }), [filters]);
   const load = useLoad(() => api('/admin/complaints', { token, query }).then((r) => ({ rows: dataOf(r), pagination: r.pagination || {} })), [token, JSON.stringify(query)]);
-  async function openComplaint(id) {
+  const openComplaint = useCallback(async (id) => {
     setDetail({ loading: true }); setStaffId('');
     try { const result = await api('/admin/complaints/show', { token, query: { id } }); const payload = dataOf(result); const complaint = payload?.complaint || payload; setDetail({ data: complaint, history: payload?.status_history || [], priorityHistory: payload?.priority_history || [], images: payload?.images || [] }); setNextStatus(''); setNextPriority(complaint?.priority || ''); setRemarks(''); }
     catch (error) { setDetail({ error: error.message }); }
     try { const result = await api('/admin/staff', { token, query: { page: 1, per_page: 100, is_active: 1 } }); setStaff(dataOf(result)); } catch { setStaff([]); }
-  }
+  }, [token]);
+  useEffect(() => { if (targetComplaintId) openComplaint(targetComplaintId); }, [targetComplaintId, openComplaint]);
   async function assign() {
     if (!staffId || !detail?.data) return;
     if (!window.confirm('Assign this complaint to the selected staff member?')) return;
@@ -311,17 +326,21 @@ function Feedback({ token }) {
   return <><Heading title="Student feedback" description="Review ratings and comments shared after resolution." />{summary.data && <div className="stat-grid compact-stats"><Card className="stat-card"><span>Average rating</span><strong>{value(summary.data, 'average_rating')} / 5</strong><small>All submitted feedback</small></Card><Card className="stat-card"><span>Responses</span><strong>{value(summary.data, 'total_feedback')}</strong><small>Total ratings</small></Card></div>}<Card className="data-card"><div className="filters"><div className="search-field"><Search size={17} /><input placeholder="Search feedback…" aria-label="Search feedback" value={text} onChange={(e) => setText(e.target.value)} /></div><select aria-label="Filter by rating" value={filter.rating} onChange={(e) => setFilter({ ...filter, rating: e.target.value, page: 1 })}><option value="">All ratings</option>{[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{n} stars</option>)}</select></div>{list.loading ? <Loading /> : list.error ? <ErrorState message={list.error} retry={list.refresh} /> : !rows.length ? <Empty>No feedback received yet.</Empty> : <><Table columns={['Rating', 'Student', 'Complaint', 'Comment', 'Received', '']} rows={rows} renderRow={(row) => <tr key={row.feedback_id}><td><b className="stars">{'★'.repeat(Number(row.rating || 0))}</b> {value(row, 'rating')}/5</td><td>{value(row, 'student_name')}</td><td>#{value(row, 'complaint_number')}</td><td className="truncate">{value(row, 'comments')}</td><td>{formatDate(value(row, 'created_at'))}</td><td><button className="text-button" onClick={async () => { try { const r = await api('/admin/feedback/show', { token, query: { feedback_id: row.feedback_id } }); setSelected(dataOf(r)); } catch { setSelected(row); } }}>View</button></td></tr>} /><Pager page={Number(list.data.pagination?.page || filter.page)} pages={Number(list.data.pagination?.total_pages || 1)} onPage={(page) => setFilter({ ...filter, page })} /></>}</Card>{selected && <Modal title="Feedback details" close={() => setSelected(null)}><div className="detail-grid">{Object.entries(selected).map(([key, val]) => <div key={key}><small>{key.replaceAll('_', ' ')}</small><p>{String(val ?? '—')}</p></div>)}</div></Modal>}</>;
 }
 
-function Notifications({ token, notify }) {
+function Notifications({ token, notify, onNavigate, onUnreadChange }) {
   const [page, setPage] = useState(1);
   const list = useLoad(() => api('/notifications', { token, query: { page, limit: 20 } }).then(dataOf), [token, page]);
-  async function mark(item) { try { await api('/notifications/read', { method: 'PATCH', token, query: { notification_id: item.notification_id } }); notify('Notification marked as read.'); list.refresh(); } catch (error) { notify(error.message); } }
+  async function mark(item) { try { await api('/notifications/read', { method: 'PATCH', token, query: { notification_id: item.notification_id } }); onUnreadChange(); list.refresh(); return true; } catch (error) { notify(error.message); return false; } }
+  async function openNotification(item) {
+    if (!item.is_read && !(await mark(item))) return;
+    onNavigate('complaints', '', item.complaint_id ? String(item.complaint_id) : '');
+  }
   async function remove(item) {
     if (!window.confirm('Delete this notification from your account?')) return;
     try { await api('/notifications/delete', { method: 'DELETE', token, query: { notification_id: item.notification_id } }); notify('Notification deleted.'); list.refresh(); }
     catch (error) { notify(error.message); }
   }
   const rows = Array.isArray(list.data) ? list.data : [];
-  return <><Heading title="Notifications" description="Notifications belonging to this signed-in admin account." action={<button className="secondary-button" disabled={!rows.some((item) => !item.is_read)} onClick={async () => { try { await api('/notifications/read-all', { method: 'PATCH', token }); notify('Notifications marked as read.'); list.refresh(); } catch (error) { notify(error.message); } }}>Mark all read</button>} /><Card className="notification-list">{list.loading ? <Loading /> : list.error ? <ErrorState message={list.error} retry={list.refresh} /> : !rows.length ? <Empty>You have no notifications.</Empty> : rows.map((item) => <div className={`notification-row ${item.is_read ? '' : 'unread'}`} key={item.notification_id}><div className="notification-icon"><Bell size={17} /></div><div className="notification-copy"><b>{value(item, 'title')}</b><p>{value(item, 'message')}</p><small>{formatDate(value(item, 'created_at'))}{item.complaint_id ? ` · Complaint #${item.complaint_id}` : ''}</small></div><div className="notification-actions">{!item.is_read && <button className="text-button" onClick={() => mark(item)}>Mark read</button>}<button className="text-button danger-text" onClick={() => remove(item)}>Delete</button></div></div>)}</Card>{(rows.length === 20 || page > 1) && <Pager page={page} pages={Math.max(page, page + (rows.length === 20 ? 1 : 0))} onPage={setPage} />}<div className="notice-line"><AlertCircle size={16} />The API scopes notifications to the current account. Admin-wide broadcasts and notification creation are unavailable.</div></>;
+  return <><Heading title="Notifications" description="Notifications belonging to this signed-in admin account." action={<button className="secondary-button" disabled={!rows.some((item) => !item.is_read)} onClick={async () => { try { await api('/notifications/read-all', { method: 'PATCH', token }); onUnreadChange(); notify('Notifications marked as read.'); list.refresh(); } catch (error) { notify(error.message); } }}>Mark all read</button>} /><Card className="notification-list">{list.loading ? <Loading /> : list.error ? <ErrorState message={list.error} retry={list.refresh} /> : !rows.length ? <Empty>You have no notifications.</Empty> : rows.map((item) => <div className={`notification-row ${item.is_read ? '' : 'unread'}`} key={item.notification_id}><div className="notification-icon"><Bell size={17} /></div><div className="notification-copy notification-open" role="button" tabIndex={0} onClick={() => openNotification(item)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openNotification(item); } }}><b>{value(item, 'title')}</b><p>{value(item, 'message')}</p><small>{formatDate(value(item, 'created_at'))}{item.complaint_id ? ` · Complaint #${item.complaint_id}` : ''}</small></div><div className="notification-actions">{!item.is_read && <button className="text-button" onClick={() => mark(item)}>Mark read</button>}<button className="text-button danger-text" onClick={() => remove(item)}>Delete</button></div></div>)}</Card>{(rows.length === 20 || page > 1) && <Pager page={page} pages={Math.max(page, page + (rows.length === 20 ? 1 : 0))} onPage={setPage} />}<div className="notice-line"><AlertCircle size={16} />Notifications linked to a complaint open its details. Other notifications open the complaints list.</div></>;
 }
 
 function Profile({ token, notify }) {
