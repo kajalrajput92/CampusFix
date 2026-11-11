@@ -49,14 +49,20 @@ Color _staffStatusColor(String value) => switch (value.toUpperCase()) {
 };
 
 class StaffAssignmentsScreen extends ConsumerWidget {
-  const StaffAssignmentsScreen({super.key});
+  final String? statusFilter;
+
+  const StaffAssignmentsScreen({super.key, this.statusFilter});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final assignments = ref.watch(staffAssignmentsProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Assigned Complaints'),
+        title: Text(
+          statusFilter == null
+              ? 'Assigned Complaints'
+              : '${_staffLabel(statusFilter!)} Complaints',
+        ),
         actions: [
           IconButton(
             tooltip: 'Notifications',
@@ -71,31 +77,45 @@ class StaffAssignmentsScreen extends ConsumerWidget {
           message: '$error',
           retry: () => ref.invalidate(staffAssignmentsProvider),
         ),
-        data: (items) => RefreshIndicator(
-          onRefresh: () => ref.refresh(staffAssignmentsProvider.future),
-          child: items.isEmpty
-              ? ListView(
-                  children: const [
-                    SizedBox(height: 150),
-                    _StaffEmpty(
-                      icon: Icons.assignment_outlined,
-                      title: 'No assigned complaints',
-                      subtitle: 'New assignments will appear here.',
-                    ),
-                  ],
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: items.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) => _AssignmentCard(
-                    assignment: items[index],
-                    onTap: () => context.push(
-                      '/staff/complaints/${items[index].complaintId}',
+        data: (items) {
+          final visibleItems = statusFilter == null
+              ? items
+              : items
+                    .where(
+                      (item) =>
+                          item.status.toUpperCase() == statusFilter!.toUpperCase(),
+                    )
+                    .toList();
+          return RefreshIndicator(
+            onRefresh: () => ref.refresh(staffAssignmentsProvider.future),
+            child: visibleItems.isEmpty
+                ? ListView(
+                    children: [
+                      const SizedBox(height: 150),
+                      _StaffEmpty(
+                        icon: Icons.assignment_outlined,
+                        title: statusFilter == null
+                            ? 'No assigned complaints'
+                            : 'No ${_staffLabel(statusFilter!).toLowerCase()} complaints',
+                        subtitle: statusFilter == null
+                            ? 'New assignments will appear here.'
+                            : 'There are no complaints with this status.',
+                      ),
+                    ],
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: visibleItems.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) => _AssignmentCard(
+                      assignment: visibleItems[index],
+                      onTap: () => context.push(
+                        '/staff/complaints/${visibleItems[index].complaintId}',
+                      ),
                     ),
                   ),
-                ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -505,24 +525,127 @@ class _StaffPhoto extends ConsumerWidget {
       );
     }
     final state = ref.watch(complaintImageBytesProvider(image.id));
-    return Container(
-      width: 170,
-      height: 120,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
+    return state.when(
+      data: (bytes) => Material(
         color: AppColors.surfaceSubtle,
         borderRadius: BorderRadius.circular(10),
-      ),
-      child: state.when(
-        data: (bytes) => Image.memory(
-          bytes,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) =>
-              const Center(child: Icon(Icons.broken_image_outlined)),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => showDialog<void>(
+            context: context,
+            builder: (dialogContext) => Dialog(
+              insetPadding: const EdgeInsets.all(16),
+              child: SizedBox(
+                width: double.maxFinite,
+                height: MediaQuery.sizeOf(context).height * 0.82,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+                      child: Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Complaint attachment',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Close',
+                            onPressed: () => Navigator.of(dialogContext).pop(),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    Expanded(
+                      child: InteractiveViewer(
+                        minScale: 0.8,
+                        maxScale: 5,
+                        child: Image.memory(
+                          bytes,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, _, _) => const Center(
+                            child: Text('This attachment could not be displayed.'),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Text(
+                        'Pinch to zoom or drag the image.',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          child: SizedBox(
+            width: 170,
+            height: 120,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.memory(
+                  bytes,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => const Center(
+                    child: Icon(Icons.broken_image_outlined),
+                  ),
+                ),
+                const Positioned(
+                  right: 5,
+                  bottom: 5,
+                  child: Icon(
+                    Icons.zoom_in,
+                    color: Colors.white,
+                    shadows: [Shadow(blurRadius: 4, color: Colors.black87)],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) =>
-            const Center(child: Icon(Icons.image_not_supported_outlined)),
+      ),
+      loading: () => Container(
+        width: 170,
+        height: 120,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceSubtle,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, _) => Container(
+        width: 170,
+        height: 120,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceSubtle,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.image_not_supported_outlined),
+            const SizedBox(height: 3),
+            const Text('Image unavailable', style: TextStyle(fontSize: 10)),
+            TextButton(
+              onPressed: () =>
+                  ref.invalidate(complaintImageBytesProvider(image.id)),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(48, 28),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text('Retry', style: TextStyle(fontSize: 10)),
+            ),
+          ],
+        ),
       ),
     );
   }
