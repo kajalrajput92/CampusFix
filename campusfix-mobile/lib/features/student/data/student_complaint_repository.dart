@@ -140,7 +140,10 @@ class StudentComplaintRepository {
       fields['images'] = await Future.wait(
         images.map(
           (image) async =>
-              MultipartFile.fromFile(image.path, filename: image.name),
+              MultipartFile.fromBytes(
+                await image.readAsBytes(),
+                filename: image.name,
+              ),
         ),
       );
     await _api.post(ApiEndpoints.complaints, data: FormData.fromMap(fields));

@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/api_datetime.dart';
 import '../../../core/widgets/app_card.dart';
 import '../data/complaint_models.dart';
 import '../data/student_complaint_repository.dart';
@@ -34,7 +35,7 @@ final notificationsProvider =
     );
 
 String _date(String value) {
-  final date = DateTime.tryParse(value);
+  final date = parseApiDateTime(value);
   return date == null
       ? value
       : DateFormat('d MMM yyyy, h:mm a').format(date.toLocal());
@@ -159,7 +160,9 @@ class _SubmitComplaintScreenState extends ConsumerState<SubmitComplaintScreen> {
   final _category = TextEditingController();
   int? _department, _location;
   List<XFile> _images = [];
+  final Map<String, Uint8List> _imagePreviews = {};
   bool _saving = false;
+  bool _pickingImages = false;
 
   @override
   void initState() {
@@ -175,6 +178,8 @@ class _SubmitComplaintScreenState extends ConsumerState<SubmitComplaintScreen> {
   }
 
   Future<void> _pick(ImageSource source) async {
+    if (_pickingImages || _images.length >= 5) return;
+    setState(() => _pickingImages = true);
     try {
       final picker = ImagePicker();
       final List<XFile> picks;
@@ -186,6 +191,7 @@ class _SubmitComplaintScreenState extends ConsumerState<SubmitComplaintScreen> {
       }
       if (!mounted) return;
       final allowed = <XFile>[];
+      final previews = <String, Uint8List>{};
       for (final image in picks) {
         final extension = image.name.toLowerCase().split('.').last;
         if (!{'jpg', 'jpeg', 'png', 'webp'}.contains(extension)) {
@@ -197,14 +203,24 @@ class _SubmitComplaintScreenState extends ConsumerState<SubmitComplaintScreen> {
           continue;
         }
         allowed.add(image);
+        previews[image.path] = await image.readAsBytes();
       }
       if (!mounted) return;
       final available = 5 - _images.length;
-      setState(() => _images = [..._images, ...allowed.take(available)]);
+      setState(() {
+        final accepted = allowed.take(available).toList();
+        _images = [..._images, ...accepted];
+        for (final image in accepted) {
+          final bytes = previews[image.path];
+          if (bytes != null) _imagePreviews[image.path] = bytes;
+        }
+      });
       if (allowed.length > available)
         _message('You can attach up to 5 images.');
     } catch (e) {
-      _message('Could not select image: $e');
+      if (mounted) _message('Could not select image: $e');
+    } finally {
+      if (mounted) setState(() => _pickingImages = false);
     }
   }
 
@@ -600,14 +616,14 @@ class _SubmitComplaintScreenState extends ConsumerState<SubmitComplaintScreen> {
                 ),
                 IconButton(
                   tooltip: 'Choose from gallery',
-                  onPressed: _images.length >= 5
+                  onPressed: _images.length >= 5 || _pickingImages
                       ? null
                       : () => _pick(ImageSource.gallery),
                   icon: const Icon(Icons.photo_library_outlined),
                 ),
                 IconButton(
                   tooltip: 'Take photo',
-                  onPressed: _images.length >= 5
+                  onPressed: _images.length >= 5 || _pickingImages
                       ? null
                       : () => _pick(ImageSource.camera),
                   icon: const Icon(Icons.camera_alt_outlined),
@@ -626,19 +642,31 @@ class _SubmitComplaintScreenState extends ConsumerState<SubmitComplaintScreen> {
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: Image.file(
-                              File(entry.value.path),
-                              width: 88,
-                              height: 88,
-                              fit: BoxFit.cover,
-                            ),
+                            child: _imagePreviews[entry.value.path] != null
+                                ? Image.memory(
+                                    _imagePreviews[entry.value.path]!,
+                                    width: 88,
+                                    height: 88,
+                                    fit: BoxFit.cover,
+                                  )
+                                : Container(
+                                    width: 88,
+                                    height: 88,
+                                    color: AppColors.border,
+                                    alignment: Alignment.center,
+                                    child: const Icon(
+                                      Icons.broken_image_outlined,
+                                    ),
+                                  ),
                           ),
                           Positioned(
                             right: 0,
                             top: 0,
                             child: IconButton(
-                              onPressed: () =>
-                                  setState(() => _images.removeAt(entry.key)),
+                              onPressed: () => setState(() {
+                                final removed = _images.removeAt(entry.key);
+                                _imagePreviews.remove(removed.path);
+                              }),
                               icon: const Icon(
                                 Icons.cancel,
                                 color: Colors.white,

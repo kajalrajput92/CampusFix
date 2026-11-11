@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/api_datetime.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../student/data/complaint_models.dart';
 import '../../student/data/student_complaint_repository.dart';
@@ -25,7 +26,7 @@ final staffComplaintDetailsProvider = FutureProvider.autoDispose
     );
 
 String _staffDate(String value) {
-  final parsed = DateTime.tryParse(value);
+  final parsed = parseApiDateTime(value);
   return parsed == null
       ? value
       : DateFormat('d MMM yyyy, h:mm a').format(parsed.toLocal());
