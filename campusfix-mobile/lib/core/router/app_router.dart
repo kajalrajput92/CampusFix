@@ -116,7 +116,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RouteConstants.staffComplaints,
-        builder: (context, state) => const StaffAssignmentsScreen(),
+        builder: (context, state) {
+          final requestedStatus = state.uri.queryParameters['status'];
+          final statusFilter = switch (requestedStatus) {
+            'ASSIGNED' => 'ASSIGNED',
+            'IN_PROGRESS' => 'IN_PROGRESS',
+            'RESOLVED' => 'RESOLVED',
+            _ => null,
+          };
+          return StaffAssignmentsScreen(statusFilter: statusFilter);
+        },
       ),
       GoRoute(
         path: RouteConstants.staffComplaintDetails,

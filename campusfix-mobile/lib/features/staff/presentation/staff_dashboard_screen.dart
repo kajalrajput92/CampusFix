@@ -121,6 +121,7 @@ class StaffDashboardScreen extends ConsumerWidget {
                               label: 'Assigned',
                               count: items.length,
                               icon: Icons.assignment_outlined,
+                              onTap: () => context.push('/staff/complaints'),
                             ),
                           ),
                           const SizedBox(width: 10),
@@ -129,6 +130,9 @@ class StaffDashboardScreen extends ConsumerWidget {
                               label: 'Pending',
                               count: pending,
                               icon: Icons.pending_actions_outlined,
+                              onTap: () => context.push(
+                                '/staff/complaints?status=ASSIGNED',
+                              ),
                             ),
                           ),
                         ],
@@ -141,6 +145,9 @@ class StaffDashboardScreen extends ConsumerWidget {
                               label: 'In progress',
                               count: inProgress,
                               icon: Icons.autorenew_rounded,
+                              onTap: () => context.push(
+                                '/staff/complaints?status=IN_PROGRESS',
+                              ),
                             ),
                           ),
                           const SizedBox(width: 10),
@@ -149,6 +156,9 @@ class StaffDashboardScreen extends ConsumerWidget {
                               label: 'Resolved',
                               count: resolved,
                               icon: Icons.check_circle_outline,
+                              onTap: () => context.push(
+                                '/staff/complaints?status=RESOLVED',
+                              ),
                             ),
                           ),
                         ],
@@ -238,15 +248,18 @@ class _CountCard extends StatelessWidget {
   final String label;
   final int count;
   final IconData icon;
+  final VoidCallback onTap;
 
   const _CountCard({
     required this.label,
     required this.count,
     required this.icon,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) => AppCard(
+    onTap: onTap,
     padding: const EdgeInsets.all(14),
     child: Row(
       children: [
