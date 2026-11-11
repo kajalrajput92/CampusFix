@@ -11,21 +11,32 @@ try {
     Environment::load();
 
     $requestOrigin = $_SERVER['HTTP_ORIGIN'] ?? '';
+    $corsConfig = $_ENV['CORS_ALLOWED_ORIGINS'] ?? '*';
+    $isDev = ($_ENV['APP_ENV'] ?? 'development') === 'development' || ($_ENV['APP_DEBUG'] ?? 'true') === 'true';
+
     $allowedOrigins = array_values(array_filter(array_map(
         'trim',
-        explode(',', $_ENV['CORS_ALLOWED_ORIGINS'] ?? '')
+        explode(',', $corsConfig)
     )));
+
     header('Vary: Origin');
-    $originAllowed = $requestOrigin !== '' && in_array($requestOrigin, $allowedOrigins, true);
+
+    $originAllowed = false;
+    if ($requestOrigin !== '') {
+        if ($isDev || $corsConfig === '*' || in_array($requestOrigin, $allowedOrigins, true)) {
+            $originAllowed = true;
+        }
+    }
+
     if ($originAllowed) {
         header('Access-Control-Allow-Origin: ' . $requestOrigin);
         header('Access-Control-Allow-Methods: GET, POST, PATCH, DELETE, OPTIONS');
-        header('Access-Control-Allow-Headers: Authorization, Content-Type, Accept');
+        header('Access-Control-Allow-Headers: Authorization, Content-Type, Accept, X-Requested-With');
         header('Access-Control-Max-Age: 600');
     }
 
     if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
-        if (!$originAllowed) {
+        if (!$originAllowed && !$isDev) {
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'Origin is not allowed.']);
             exit;

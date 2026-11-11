@@ -374,7 +374,13 @@ function ProtectedImage({ imageId, token }) {
   useEffect(() => {
     const controller = new AbortController(); let objectUrl = '';
     apiBinary('/complaints/image', { token, query: { id: imageId }, signal: controller.signal })
-      .then((blob) => { if (controller.signal.aborted || !blob.type.startsWith('image/')) return; objectUrl = URL.createObjectURL(blob); setSource(objectUrl); })
+      .then((blob) => {
+        if (controller.signal.aborted) return;
+        if (!blob || blob.size === 0) { setError('Image unavailable'); return; }
+        const safeBlob = blob.type && blob.type.startsWith('image/') ? blob : new Blob([blob], { type: 'image/jpeg' });
+        objectUrl = URL.createObjectURL(safeBlob);
+        setSource(objectUrl);
+      })
       .catch((exception) => { if (!controller.signal.aborted) setError(exception.message); });
     return () => { controller.abort(); if (objectUrl) URL.revokeObjectURL(objectUrl); };
   }, [imageId, token]);
