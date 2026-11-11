@@ -16,7 +16,16 @@ const sections = [
 ];
 const statuses = ['SUBMITTED', 'UNDER_REVIEW', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REJECTED'];
 const priorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
-const formatDate = (value) => value && !Number.isNaN(new Date(value).getTime()) ? new Date(value).toLocaleString() : '—';
+const formatDate = (value) => {
+  if (!value) return '—';
+  // MySQL TIMESTAMP values arrive without a zone; treat that wire value as UTC,
+  // then let the browser show it in the administrator's local timezone.
+  const timestamp = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(value)
+    ? `${value.replace(' ', 'T')}Z`
+    : value;
+  const date = new Date(timestamp);
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString();
+};
 const value = (object, ...keys) => keys.map((key) => object?.[key]).find((item) => item !== undefined && item !== null && item !== '') ?? '—';
 
 function App() {
@@ -28,13 +37,15 @@ function App() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [accountProfile, setAccountProfile] = useState(null);
+  const [accountProfileLoading, setAccountProfileLoading] = useState(false);
   const [toast, setToast] = useState('');
   const [authChecking, setAuthChecking] = useState(Boolean(readSession()?.token));
   const toastTimer = useRef(null);
   const accountMenuRef = useRef(null);
 
   const signOut = useCallback(() => {
-    clearSession(); setSession(null); setAdmin(null); setPage('dashboard');
+    clearSession(); setSession(null); setAdmin(null); setAccountProfile(null); setPage('dashboard');
   }, []);
   const revokeAndSignOut = useCallback(async () => {
     const token = session?.token;
@@ -67,6 +78,17 @@ function App() {
     window.addEventListener('campusfix:unauthorized', handler);
     return () => window.removeEventListener('campusfix:unauthorized', handler);
   }, [signOut]);
+  useEffect(() => {
+    if (!accountMenuOpen || !session?.token) return undefined;
+    const controller = new AbortController();
+    setAccountProfile(null);
+    setAccountProfileLoading(true);
+    api('/profile', { token: session.token, signal: controller.signal })
+      .then((result) => setAccountProfile(dataOf(result)))
+      .catch((error) => { if (error.name !== 'AbortError') setAccountProfile(null); })
+      .finally(() => { if (!controller.signal.aborted) setAccountProfileLoading(false); });
+    return () => controller.abort();
+  }, [accountMenuOpen, session?.token]);
   useEffect(() => () => window.clearTimeout(toastTimer.current), []);
   useEffect(() => {
     function closeAccountMenu(event) {
@@ -136,7 +158,7 @@ function App() {
     </aside>
     {menuOpen && <button className="scrim" onClick={() => setMenuOpen(false)} aria-label="Close menu" />}
     <main className="main-area">
-      <header className="topbar"><button className="icon-button menu-toggle" onClick={() => setMenuOpen(true)} aria-label="Open navigation"><Menu size={20} /></button><div className="crumb">Admin <ChevronRight size={14} /> <span><ActiveIcon size={15} /> {sections.find(([key]) => key === page)?.[1]}</span></div><div className="account-menu-wrap" ref={accountMenuRef}><button type="button" className="top-user" aria-haspopup="menu" aria-expanded={accountMenuOpen} onClick={() => setAccountMenuOpen((open) => !open)}><div className="avatar">{String(value(admin, 'email')).slice(0, 1).toUpperCase()}</div><div><b>{value(admin, 'full_name', 'email')}</b><small>Administrator</small></div><ChevronDown size={15} /></button>{accountMenuOpen && <div className="account-dropdown" role="menu"><p className="eyebrow">SIGNED-IN ADMINISTRATOR</p><div className="account-detail"><small>Full name</small><b>{value(admin, 'full_name')}</b></div><div className="account-detail"><small>Email address</small><b>{value(admin, 'email')}</b></div><div className="account-detail"><small>Role</small><b>{value(admin, 'role')}</b></div><button className="secondary-button full-width" role="menuitem" onClick={() => { setAccountMenuOpen(false); navigate('profile'); }}>View full profile</button></div>}</div></header>
+      <header className="topbar"><button className="icon-button menu-toggle" onClick={() => setMenuOpen(true)} aria-label="Open navigation"><Menu size={20} /></button><div className="crumb">Admin <ChevronRight size={14} /> <span><ActiveIcon size={15} /> {sections.find(([key]) => key === page)?.[1]}</span></div><div className="account-menu-wrap" ref={accountMenuRef}><button type="button" className="top-user" aria-haspopup="menu" aria-expanded={accountMenuOpen} onClick={() => setAccountMenuOpen((open) => !open)}><div className="avatar">{String(value(admin, 'email')).slice(0, 1).toUpperCase()}</div><div><b>{value(accountProfile, 'full_name', value(admin, 'full_name', 'email'))}</b><small>Administrator</small></div><ChevronDown size={15} /></button>{accountMenuOpen && <div className="account-dropdown" role="menu"><p className="eyebrow">SIGNED-IN ADMINISTRATOR</p><div className="account-detail"><small>Full name</small><b>{value(accountProfile, 'full_name', value(admin, 'full_name', accountProfileLoading ? 'Loading…' : '—'))}</b></div><div className="account-detail"><small>Email address</small><b>{value(accountProfile, 'email', value(admin, 'email'))}</b></div><div className="account-detail"><small>Role</small><b>{value(accountProfile, 'role', value(admin, 'role'))}</b></div><button className="secondary-button full-width" role="menuitem" onClick={() => { setAccountMenuOpen(false); navigate('profile'); }}>View full profile</button></div>}</div></header>
       <section className="content"><Page page={page} token={session.token} notify={notify} onNavigate={navigate} complaintStatus={complaintStatus} targetComplaintId={targetComplaintId} onUnreadChange={refreshUnreadCount} onPasswordChanged={signOut} /></section>
     </main>
     {toast && <div className="toast" role="status"><AlertCircle size={17} />{toast}</div>}
