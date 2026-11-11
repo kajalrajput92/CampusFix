@@ -1,4 +1,3 @@
-
 <?php
 
 use Campusfix\Backend\Config\Environment;
@@ -45,21 +44,29 @@ try {
         exit;
     }
 
-    $routes = require dirname(__DIR__) . '/routes/api.php';
-
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
     $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
+    // Root status check
+    if ($path === '/' || $path === '') {
+        echo json_encode([
+            'success' => true,
+            'message' => 'CampusFix REST API is running.',
+            'version' => '1.0.0',
+            'health' => '/api/health'
+        ], JSON_PRETTY_PRINT);
+        exit;
+    }
+
+    $routes = require dirname(__DIR__) . '/routes/api.php';
     $routeKey = $method . ' ' . $path;
 
     if (!isset($routes[$routeKey])) {
         http_response_code(404);
-
         echo json_encode([
             'success' => false,
             'message' => 'Route not found'
         ]);
-
         exit;
     }
 
@@ -71,11 +78,12 @@ try {
     echo json_encode($response, JSON_PRETTY_PRINT);
 }
 catch (Throwable $e) {
-    error_log('[CampusFix API ERROR] ' . $e, 4);
+    error_log('[CampusFix API ERROR] ' . $e->getMessage() . "\n" . $e->getTraceAsString());
     http_response_code(500);
 
     echo json_encode([
         'success' => false,
-        'message' => 'Internal server error'
+        'message' => 'Internal server error',
+        'error' => ($_ENV['APP_DEBUG'] ?? 'false') === 'true' ? $e->getMessage() : undefined
     ]);
 }

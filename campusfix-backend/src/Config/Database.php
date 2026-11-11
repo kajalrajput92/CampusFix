@@ -12,12 +12,12 @@ class Database
     public static function connect(): PDO
     {
         if (self::$connection === null) {
-            $host = $_ENV['DB_HOST'];
-            $port = $_ENV['DB_PORT'];
-            $database = $_ENV['DB_DATABASE'];
-            $username = $_ENV['DB_USERNAME'];
-            $password = $_ENV['DB_PASSWORD'];
-            $charset = $_ENV['DB_CHARSET'];
+            $host = $_ENV['DB_HOST'] ?? getenv('DB_HOST') ?: '127.0.0.1';
+            $port = $_ENV['DB_PORT'] ?? getenv('DB_PORT') ?: '3306';
+            $database = $_ENV['DB_DATABASE'] ?? getenv('DB_DATABASE') ?: 'campusfix_db';
+            $username = $_ENV['DB_USERNAME'] ?? getenv('DB_USERNAME') ?: 'root';
+            $password = $_ENV['DB_PASSWORD'] ?? getenv('DB_PASSWORD') ?: '';
+            $charset = $_ENV['DB_CHARSET'] ?? getenv('DB_CHARSET') ?: 'utf8mb4';
 
             $dsn = "mysql:host={$host};port={$port};dbname={$database};charset={$charset}";
 

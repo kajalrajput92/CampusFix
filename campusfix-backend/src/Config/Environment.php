@@ -10,9 +10,16 @@ class Environment
     {
         $rootPath = dirname(__DIR__, 2);
 
-        $dotenv = Dotenv::createImmutable($rootPath);
+        if (file_exists($rootPath . DIRECTORY_SEPARATOR . '.env')) {
+            $dotenv = Dotenv::createImmutable($rootPath);
+            $dotenv->safeLoad();
+        }
 
-        $dotenv->load();
+        foreach (getenv() as $key => $val) {
+            if (!isset($_ENV[$key])) {
+                $_ENV[$key] = $val;
+            }
+        }
 
         date_default_timezone_set('Asia/Kolkata');
     }
