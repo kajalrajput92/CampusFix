@@ -24,6 +24,7 @@
 # Android
 **/.gradle/
 **/local.properties
+*.apk
 
 # OS
 .DS_Store
