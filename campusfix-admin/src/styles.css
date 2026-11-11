@@ -12,3 +12,5 @@
 .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:4px}
 
 .notification-open{cursor:pointer}.notification-open:focus-visible{outline:2px solid #426be8;outline-offset:3px;border-radius:4px}.notification-open:hover b{text-decoration:underline}
+
+.account-menu-wrap{position:relative;margin-left:auto}.top-user{border:0;background:transparent;color:inherit;padding:0}.account-dropdown{position:absolute;right:0;top:calc(100% + 14px);z-index:30;width:min(300px,calc(100vw - 32px));padding:18px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 40px rgba(14,31,55,.18)}.account-dropdown>.eyebrow{margin:0 0 14px}.account-detail{padding:9px 0;border-bottom:1px solid var(--line)}.account-detail small,.account-detail b{display:block}.account-detail small{font-size:9px;color:var(--muted);margin-bottom:4px}.account-detail b{font-size:11px;font-weight:600;overflow-wrap:anywhere}.account-dropdown>.secondary-button{margin-top:14px}.top-user:focus-visible{outline:2px solid var(--blue);outline-offset:4px;border-radius:8px}@media(max-width:800px){.topbar>.account-menu-wrap{margin-left:auto}.account-dropdown{top:calc(100% + 10px)}}

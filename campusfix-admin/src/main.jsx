@@ -27,9 +27,11 @@ function App() {
   const [targetComplaintId, setTargetComplaintId] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [toast, setToast] = useState('');
   const [authChecking, setAuthChecking] = useState(Boolean(readSession()?.token));
   const toastTimer = useRef(null);
+  const accountMenuRef = useRef(null);
 
   const signOut = useCallback(() => {
     clearSession(); setSession(null); setAdmin(null); setPage('dashboard');
@@ -66,6 +68,18 @@ function App() {
     return () => window.removeEventListener('campusfix:unauthorized', handler);
   }, [signOut]);
   useEffect(() => () => window.clearTimeout(toastTimer.current), []);
+  useEffect(() => {
+    function closeAccountMenu(event) {
+      if (event.type === 'keydown' && event.key === 'Escape') setAccountMenuOpen(false);
+      if (event.type === 'mousedown' && !accountMenuRef.current?.contains(event.target)) setAccountMenuOpen(false);
+    }
+    document.addEventListener('mousedown', closeAccountMenu);
+    document.addEventListener('keydown', closeAccountMenu);
+    return () => {
+      document.removeEventListener('mousedown', closeAccountMenu);
+      document.removeEventListener('keydown', closeAccountMenu);
+    };
+  }, []);
 
   useEffect(() => {
     if (!session?.token) { setAuthChecking(false); return undefined; }
@@ -122,8 +136,8 @@ function App() {
     </aside>
     {menuOpen && <button className="scrim" onClick={() => setMenuOpen(false)} aria-label="Close menu" />}
     <main className="main-area">
-      <header className="topbar"><button className="icon-button menu-toggle" onClick={() => setMenuOpen(true)} aria-label="Open navigation"><Menu size={20} /></button><div className="crumb">Admin <ChevronRight size={14} /> <span><ActiveIcon size={15} /> {sections.find(([key]) => key === page)?.[1]}</span></div><div className="top-user"><div className="avatar">{String(value(admin, 'email')).slice(0, 1).toUpperCase()}</div><div><b>{value(admin, 'full_name', 'email')}</b><small>Administrator</small></div><ChevronDown size={15} /></div></header>
-      <section className="content"><Page page={page} token={session.token} notify={notify} onNavigate={navigate} complaintStatus={complaintStatus} targetComplaintId={targetComplaintId} onUnreadChange={refreshUnreadCount} /></section>
+      <header className="topbar"><button className="icon-button menu-toggle" onClick={() => setMenuOpen(true)} aria-label="Open navigation"><Menu size={20} /></button><div className="crumb">Admin <ChevronRight size={14} /> <span><ActiveIcon size={15} /> {sections.find(([key]) => key === page)?.[1]}</span></div><div className="account-menu-wrap" ref={accountMenuRef}><button type="button" className="top-user" aria-haspopup="menu" aria-expanded={accountMenuOpen} onClick={() => setAccountMenuOpen((open) => !open)}><div className="avatar">{String(value(admin, 'email')).slice(0, 1).toUpperCase()}</div><div><b>{value(admin, 'full_name', 'email')}</b><small>Administrator</small></div><ChevronDown size={15} /></button>{accountMenuOpen && <div className="account-dropdown" role="menu"><p className="eyebrow">SIGNED-IN ADMINISTRATOR</p><div className="account-detail"><small>Full name</small><b>{value(admin, 'full_name')}</b></div><div className="account-detail"><small>Email address</small><b>{value(admin, 'email')}</b></div><div className="account-detail"><small>Role</small><b>{value(admin, 'role')}</b></div><button className="secondary-button full-width" role="menuitem" onClick={() => { setAccountMenuOpen(false); navigate('profile'); }}>View full profile</button></div>}</div></header>
+      <section className="content"><Page page={page} token={session.token} notify={notify} onNavigate={navigate} complaintStatus={complaintStatus} targetComplaintId={targetComplaintId} onUnreadChange={refreshUnreadCount} onPasswordChanged={signOut} /></section>
     </main>
     {toast && <div className="toast" role="status"><AlertCircle size={17} />{toast}</div>}
   </div>;
@@ -147,7 +161,7 @@ function Login({ onLogin }) {
   return <div className="login-page"><div className="login-panel"><div className="brand login-brand"><div className="brand-mark">CF</div><div><strong>CampusFix</strong><small>ADMIN CONSOLE</small></div></div><div className="login-emblem"><ShieldCheck size={25} /></div><p className="eyebrow">CAMPUS OPERATIONS</p><h1>Welcome back</h1><p className="muted">Sign in with an authorized administrator account.</p><form onSubmit={submit} className="form-stack"><label>Email address<input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required /></label><label>Password<input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>{error && <div className="error-banner" role="alert"><AlertCircle size={17} />{error}</div>}<button className="primary-button full-width" disabled={busy}>{busy ? <><span className="spinner small" /> Signing in…</> : 'Sign in securely'}</button></form><small className="login-foot">Access is checked against the CampusFix API.</small></div><div className="login-decoration"><span className="orb orb-one" /><span className="orb orb-two" /><div className="decor-copy"><span>REPORT. RESOLVE. IMPROVE.</span><h2>A better campus<br />starts with listening.</h2><p>One place to coordinate the work that keeps campus moving.</p></div></div></div>;
 }
 
-function Page({ page, token, notify, onNavigate, complaintStatus, targetComplaintId, onUnreadChange }) {
+function Page({ page, token, notify, onNavigate, complaintStatus, targetComplaintId, onUnreadChange, onPasswordChanged }) {
   switch (page) {
     case 'dashboard': return <Dashboard token={token} onNavigate={onNavigate} />;
     case 'complaints': return <Complaints token={token} notify={notify} initialStatus={complaintStatus} targetComplaintId={targetComplaintId} />;
@@ -157,7 +171,7 @@ function Page({ page, token, notify, onNavigate, complaintStatus, targetComplain
     case 'locations': return <Catalog token={token} kind="locations" notify={notify} />;
     case 'feedback': return <Feedback token={token} />;
     case 'notifications': return <Notifications token={token} notify={notify} onNavigate={onNavigate} onUnreadChange={onUnreadChange} />;
-    case 'profile': return <Profile token={token} notify={notify} />;
+    case 'profile': return <Profile token={token} notify={notify} onPasswordChanged={onPasswordChanged} />;
     default: return <Dashboard token={token} />;
   }
 }
@@ -343,10 +357,12 @@ function Notifications({ token, notify, onNavigate, onUnreadChange }) {
   return <><Heading title="Notifications" description="Notifications belonging to this signed-in admin account." action={<button className="secondary-button" disabled={!rows.some((item) => !item.is_read)} onClick={async () => { try { await api('/notifications/read-all', { method: 'PATCH', token }); onUnreadChange(); notify('Notifications marked as read.'); list.refresh(); } catch (error) { notify(error.message); } }}>Mark all read</button>} /><Card className="notification-list">{list.loading ? <Loading /> : list.error ? <ErrorState message={list.error} retry={list.refresh} /> : !rows.length ? <Empty>You have no notifications.</Empty> : rows.map((item) => <div className={`notification-row ${item.is_read ? '' : 'unread'}`} key={item.notification_id}><div className="notification-icon"><Bell size={17} /></div><div className="notification-copy notification-open" role="button" tabIndex={0} onClick={() => openNotification(item)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openNotification(item); } }}><b>{value(item, 'title')}</b><p>{value(item, 'message')}</p><small>{formatDate(value(item, 'created_at'))}{item.complaint_id ? ` · Complaint #${item.complaint_id}` : ''}</small></div><div className="notification-actions">{!item.is_read && <button className="text-button" onClick={() => mark(item)}>Mark read</button>}<button className="text-button danger-text" onClick={() => remove(item)}>Delete</button></div></div>)}</Card>{(rows.length === 20 || page > 1) && <Pager page={page} pages={Math.max(page, page + (rows.length === 20 ? 1 : 0))} onPage={setPage} />}<div className="notice-line"><AlertCircle size={16} />Notifications linked to a complaint open its details. Other notifications open the complaints list.</div></>;
 }
 
-function Profile({ token, notify }) {
+function Profile({ token, notify, onPasswordChanged }) {
   const profile = useLoad(() => api('/profile', { token }).then(dataOf), [token]);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
 
   async function saveProfile(event) {
     event.preventDefault();
@@ -369,13 +385,36 @@ function Profile({ token, notify }) {
     }
   }
 
+  async function savePassword(event) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const currentPassword = String(form.get('current_password') || '');
+    const newPassword = String(form.get('new_password') || '');
+    const confirmPassword = String(form.get('confirm_password') || '');
+    if (!currentPassword) { notify('Enter your current password.'); return; }
+    if (newPassword.length < 8 || newPassword.length > 72) { notify('New password must be between 8 and 72 characters.'); return; }
+    if (newPassword !== confirmPassword) { notify('New password and confirmation do not match.'); return; }
+
+    setPasswordSaving(true);
+    try {
+      await api('/profile/password', { method: 'PATCH', token, body: { current_password: currentPassword, new_password: newPassword } });
+      window.alert('Password changed. Please sign in again with your new password.');
+      onPasswordChanged();
+    } catch (error) {
+      notify(error.message);
+    } finally {
+      setPasswordSaving(false);
+    }
+  }
+
   return <>
     <Heading title="Administrator profile" description="View and update your administrator account details." action={!profile.loading && !profile.error && <button className="primary-button" onClick={() => setEditing(true)}>Edit profile</button>} />
     {profile.loading ? <Loading /> : profile.error ? <ErrorState message={profile.error} retry={profile.refresh} /> : <Card className="profile-card">
       <div className="profile-avatar">{String(value(profile.data, 'full_name', 'email') || 'A').slice(0, 1).toUpperCase()}</div>
       <div><p className="eyebrow">ADMIN ACCOUNT</p><h2>{value(profile.data, 'full_name')}</h2><p className="muted">{value(profile.data, 'email')}</p></div>
       <div className="profile-fields">{Object.entries(profile.data || {}).filter(([key]) => !/password|token|secret/i.test(key)).map(([key, val]) => <div key={key}><small>{key.replaceAll('_', ' ')}</small><b>{String(val ?? '—')}</b></div>)}</div>
-      <div className="notice-line"><AlertCircle size={16} />You can update your name and phone number. Email and administrator role are managed by account policy.</div>
+      <div className="notice-line"><AlertCircle size={16} />Name, phone number, and password can be changed. Email, role, IDs, and account timestamps are fixed by the current backend profile API.</div>
+      <button className="secondary-button profile-password-button" onClick={() => setChangingPassword(true)}>Change password</button>
     </Card>}
     {editing && <Modal title="Edit administrator profile" close={() => { if (!saving) setEditing(false); }}>
       <form className="form-stack" onSubmit={saveProfile}>
@@ -383,6 +422,15 @@ function Profile({ token, notify }) {
         <label>Email address<input value={profile.data?.email || ''} disabled /></label>
         <label>Phone<input name="phone" maxLength="20" defaultValue={profile.data?.phone || ''} autoComplete="tel" /></label>
         <div className="modal-actions"><button type="button" className="secondary-button" disabled={saving} onClick={() => setEditing(false)}>Cancel</button><button className="primary-button" disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</button></div>
+      </form>
+    </Modal>}
+    {changingPassword && <Modal title="Change password" close={() => { if (!passwordSaving) setChangingPassword(false); }}>
+      <form className="form-stack" onSubmit={savePassword}>
+        <label>Current password<input name="current_password" type="password" required autoComplete="current-password" /></label>
+        <label>New password<input name="new_password" type="password" required minLength="8" maxLength="72" autoComplete="new-password" /></label>
+        <label>Confirm new password<input name="confirm_password" type="password" required minLength="8" maxLength="72" autoComplete="new-password" /></label>
+        <p className="form-hint">Changing your password ends this session. Sign in again with the new password afterward.</p>
+        <div className="modal-actions"><button type="button" className="secondary-button" disabled={passwordSaving} onClick={() => setChangingPassword(false)}>Cancel</button><button className="primary-button" disabled={passwordSaving}>{passwordSaving ? 'Updating…' : 'Update password'}</button></div>
       </form>
     </Modal>}
   </>;
